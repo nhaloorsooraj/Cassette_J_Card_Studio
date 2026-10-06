@@ -6,7 +6,7 @@
 
 Design it in your browser. Arrange it on the page. Print it at home.
 
-[![Open Source](https://shields.io)](https://shields.io)
+[![Open Source](https://shields.io)](https://shields.io)](#)
 [![Runs in your browser](https://img.shields.io/badge/runs-in%20your%20browser-5265a5?style=flat-square)](#)
 [![No account required](https://img.shields.io/badge/account-not%20required-8a5b9b?style=flat-square)](#)
 
