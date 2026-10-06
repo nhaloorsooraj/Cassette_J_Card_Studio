@@ -1,6 +1,6 @@
 <div align\="center">
 
-# J-Card Maker
+# Cassette J-Card Studio
 
 ### A free online studio for cassette J-cards, tape labels, and mixtape artwork.
 
