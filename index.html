@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>J-Card Maker — Cassette Artwork Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand-mark" aria-hidden="true">J</div>
+  <div class="app-brand">
+    <span class="app-eyebrow">CASSETTE ARTWORK STUDIO</span>
+    <strong>J-Card Maker</strong>
+  </div>
+  <div class="project-heading">
+    <span>NOW EDITING</span>
+    <strong id="projectHeaderTitle">Album Title</strong>
+  </div>
+  <span class="project-status" id="projectSaveStatus" aria-live="polite">Local project</span>
+</header>
+
+<div class="app-layout">
+  <!-- Top/Left: Canvas Area -->
+  <div class="canvas-section">
+    <div class="canvas-toolbar">
+      <button class="tool-btn" id="btnLayout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        Layout
+      </button>
+      <div class="canvas-toolbar-actions">
+        <button class="tool-btn" id="btnColorControls">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0-10 10"></path></svg>
+          Color Controls
+        </button>
+        <button class="tool-btn" id="btnToggleDarkMode" type="button" aria-pressed="false">Dark mode</button>
+        <button class="tool-btn" id="btnTutorial" type="button" aria-haspopup="dialog">Tutorial</button>
+        <div class="canvas-zoom-controls" role="group" aria-label="Canvas zoom controls">
+          <button class="tool-btn" id="btnZoomOut" type="button" aria-label="Zoom out">−</button>
+          <input id="canvasZoom" type="range" min="50" max="200" step="10" value="100" aria-label="Canvas zoom">
+          <button class="tool-btn" id="btnZoomIn" type="button" aria-label="Zoom in">+</button>
+          <button class="tool-btn" id="btnZoomReset" type="button">100%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layout Popup -->
+    <div class="popup-panel" id="layoutPopup">
+      <div class="popup-header">
+        <div class="layout-slider-wrap">
+          <strong>Canvas guides</strong>
+          <button class="icon-btn" id="btnGridSpacingDown" type="button" aria-label="Decrease grid spacing">-</button>
+          <input type="range" id="gridSpacingInput" min="1" max="8" value="4">
+          <button class="icon-btn" id="btnGridSpacingUp" type="button" aria-label="Increase grid spacing">+</button>
+          <span id="gridSpacingLabel">4 mm grid</span>
+        </div>
+        <button class="close-btn" id="closeLayoutBtn">✕</button>
+      </div>
+      <div class="popup-desc">Toggle canvas guides, cut edges, and a measurement grid. Printed piece sizes remain standard.</div>
+      
+      <div class="layout-options">
+        <div class="lo-col">
+          <button class="lo-btn" type="button" data-piece="jcard">J-Card Front</button>
+          <button class="lo-btn" type="button" data-piece="jcard-back">J-Card Back</button>
+        </div>
+        <div class="lo-col">
+          <button class="lo-btn" type="button" data-piece="label-a">Label A</button>
+          <button class="lo-btn" type="button" data-piece="label-b">Label B</button>
+        </div>
+      </div>
+      
+      <div class="layout-footer">
+        <div class="toggle-group">
+          <button class="tg-btn active" type="button" data-unit="in">in</button>
+          <button class="tg-btn" type="button" data-unit="mm">mm</button>
+        </div>
+        <button class="lo-btn active" id="btnToggleFold">Fold lines</button>
+        <button class="lo-btn active" id="btnToggleCut">Cut lines</button>
+        <button class="lo-btn" id="btnToggleGrid" type="button">Grid</button>
+        <button class="lo-btn" id="btnSnapToGrid" type="button" aria-pressed="false">Snap to grid</button>
+        <button class="lo-btn active" id="btnCenterAlignment" type="button" aria-pressed="true">Center alignment</button>
+        <span id="pieceDimensions" class="layout-dimensions"></span>
+      </div>
+    </div>
+
+    <!-- Color Controls Popup -->
+    <div class="popup-panel" id="colorPopup">
+      <div class="color-top-bar">
+        <button class="ct-btn active" id="btnColorize">
+          <span class="rainbow-swatch"></span>
+          Colorize
+        </button>
+        <button class="ct-btn" id="btnBackground">
+          <span class="bg-preview-swatch" id="bgSwatchIndicator"></span>
+          Background
+        </button>
+        <button class="ct-btn" id="btnResetColor">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: middle;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+          Reset
+        </button>
+      </div>
+      <div class="color-picker-body">
+        <div class="cp-header">
+          <span id="cpHeaderTitle">Colorize</span>
+          <button class="close-btn-small" id="closeColorBodyBtn">✕</button>
+        </div>
+        <div class="swatches-grid">
+          <button class="swatch" data-color="#ffffff" style="background:#ffffff;"></button>
+          <button class="swatch" data-color="#d1d5db" style="background:#d1d5db;"></button>
+          <button class="swatch" data-color="#6b7280" style="background:#6b7280;"></button>
+          <button class="swatch" data-color="#000000" style="background:#000000;"></button>
+          <button class="swatch" data-color="#ef4444" style="background:#ef4444;"></button>
+          <button class="swatch" data-color="#f97316" style="background:#f97316;"></button>
+          <button class="swatch" data-color="#eab308" style="background:#eab308;"></button>
+          <button class="swatch" data-color="#78350f" style="background:#78350f;"></button>
+          <button class="swatch" data-color="#22c55e" style="background:#22c55e;"></button>
+          <button class="swatch" data-color="#0d9488" style="background:#0d9488;"></button>
+          <button class="swatch" data-color="#2563eb" style="background:#2563eb;"></button>
+          <button class="swatch" data-color="#7c3aed" style="background:#7c3aed;"></button>
+          <button class="swatch" data-color="#db2777" style="background:#db2777;"></button>
+          <button class="swatch" data-color="#fef3c7" style="background:#fef3c7;"></button>
+          <button class="swatch" data-color="#1e293b" style="background:#1e293b;"></button>
+          <button class="swatch" data-color="#831843" style="background:#831843;"></button>
+        </div>
+        <div class="custom-color-area">
+          <div class="custom-color-row">
+            <span class="color-preview-box" id="activeColorPreview" title="Click to choose custom color"></span>
+            <input type="text" id="hexColorInput" value="#1c1a16" placeholder="#000000">
+            <label for="nativeColorPicker" class="color-picker-trigger" title="Open Color Picker">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            </label>
+            <button id="btnEyeDropper" class="eyedropper-btn" type="button" title="Pick color from screen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 7 3 3m-9 9 9-9a2.12 2.12 0 0 0 0-3l-1-1a2.12 2.12 0 0 0-3 0l-9 9v4h4Z"/></svg>
+            </button>
+            <input type="color" id="nativeColorPicker" value="#1c1a16" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;">
+          </div>
+        </div>
+        <section class="ui-color-settings" aria-labelledby="uiColorHeading">
+          <div>
+            <strong id="uiColorHeading">Interface colors</strong>
+            <span>Set the accent and text colors used across the editor.</span>
+          </div>
+          <div class="ui-color-picker-list">
+            <label class="ui-color-picker-row" for="uiColorPicker">
+              <span>Accent</span>
+              <input type="color" id="uiColorPicker" value="#276c68" aria-label="Choose interface accent color">
+              <span id="uiColorPreview" aria-hidden="true"></span>
+            </label>
+            <label class="ui-color-picker-row" for="uiTextColorPicker">
+              <span>Text</span>
+              <input type="color" id="uiTextColorPicker" value="#203335" aria-label="Choose interface text color">
+              <span id="uiTextColorPreview" aria-hidden="true"></span>
+            </label>
+          </div>
+          <button type="button" class="action-btn primary ui-color-apply" id="btnApplyUiColor">OK</button>
+          <span id="uiColorStatus" role="status" aria-live="polite"></span>
+        </section>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="designCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="action-btn" id="btnShare">Share project</button>
+      <button class="action-btn" id="btnSave">Save</button>
+      <button class="action-btn" id="btnPrintPreview" type="button">Print Preview</button>
+      <button class="action-btn" id="preview3dBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right:4px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        3D
+      </button>
+      <button class="action-btn" id="btnResetDesign">Reset</button>
+      <button class="action-btn primary" id="exportBtn">Export</button>
+    </div>
+  </div>
+
+  <!-- Draggable Resize Divider -->
+  <div class="panel-resizer" id="panelResizer" title="Drag to resize editor panel (Double-click to toggle width)">
+    <div class="resizer-bar"></div>
+  </div>
+
+  <!-- Bottom/Right: Editor Panel -->
+  <div class="editor-section" id="editorSection">
+    <div class="editor-top-bar">
+      <div class="sub-tabs" id="pieceTabs">
+        <!-- Tabs generated dynamically via JS -->
+      </div>
+      <div class="editor-top-actions">
+        <button class="tab-icon-btn" id="btnTogglePanelWidth" title="Toggle panel width (Standard / Wide)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== SINGLE SCROLL CONTAINER ===== -->
+    <div class="scroll-editor" id="scrollEditor">
+
+    <!-- ===== EDIT TEXT SECTION ===== -->
+    <div class="scroll-section" id="section-edit-text">
+      <div class="scroll-section-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        Project &amp; Tracklist
+        <button type="button" class="action-btn primary add-text-project-btn" id="btnAddTextLayer">+ Add Text</button>
+      </div>
+
+      <!-- Font Controls Card -->
+      <div class="font-controls-card" id="typographyCard">
+        <div class="font-controls-row">
+          <div class="fc-group">
+            <label class="fc-label">Custom Font</label>
+            <div class="font-select-wrap">
+              <select id="fontSelect">
+                <option value="sans">Inter</option>
+                <option value="mono">JetBrains Mono</option>
+                <option value="display">Archivo Expanded</option>
+                <option value="malayalam">Noto Sans Malayalam</option>
+              </select>
+            </div>
+          </div>
+          <div class="fc-group">
+            <label class="fc-label">Font Size</label>
+            <input type="range" id="fontSizeSlider" min="2" max="30" step="0.1" value="7">
+            <span class="fc-val" id="fontSizeVal">7mm</span>
+          </div>
+          <div class="fc-group">
+            <label class="fc-label">Font Weight</label>
+            <input type="range" id="fontWeightSlider" min="100" max="900" step="100" value="400">
+            <span class="fc-val" id="fontWeightVal">400</span>
+          </div>
+          <div class="fc-group">
+            <label class="fc-label">Letter Spacing</label>
+            <input type="range" id="letterSpacingSlider" min="-5" max="20" step="0.1" value="0">
+            <span class="fc-val" id="letterSpacingVal">0.0px</span>
+          </div>
+        </div>
+
+        <div class="font-style-row">
+          <label class="checkbox-label"><input type="checkbox" id="chkSmallCaps"> Small Caps</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkAllCaps"> All Caps</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkItalic"> Italic</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkShadow"> Shadow</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkOutline"> Outline</label>
+        </div>
+
+        <div class="font-color-row">
+          <span class="fc-label">Color</span>
+          <button class="font-color-swatch" id="fontColorSwatch" title="Click to pick color"></button>
+          <input type="color" id="fontColorPicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+          <button class="fc-reset-btn" id="btnResetFontColor">Reset</button>
+        </div>
+
+        <div class="font-align-row">
+          <span class="fc-label" style="min-width:38px;">Align</span>
+          <button type="button" class="btn-align active" id="btnAlignLeft" title="Align Left">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+          </button>
+          <button type="button" class="btn-align" id="btnAlignCenter" title="Align Center">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="18" y1="14" x2="6" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+          </button>
+          <button type="button" class="btn-align" id="btnAlignRight" title="Align Right">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>
+          </button>
+        </div>
+
+        <p class="font-language-note">Malayalam text is supported. Choose Noto Sans Malayalam, or it will be selected automatically when you type Malayalam.</p>
+        <button class="save-default-btn" id="btnSaveDefaultFont">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v6h10V2"/><path d="M7 13h10v9H7z"/></svg>
+          Save as Default Font
+        </button>
+        <span id="defaultFontSaveStatus" class="inline-save-status" aria-live="polite"></span>
+      </div>
+
+      <!-- Track List Settings -->
+      <div class="tracklist-settings-card" id="trackSettingsCard">
+        <div class="tls-title">TRACKLIST DISPLAY</div>
+        <div class="tls-checkboxes">
+          <label class="checkbox-label"><input type="checkbox" id="chkShowArtist" checked> Show Artist</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkShowTrackNum" checked> Show Track #</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkShowDuration" checked> Show Duration</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkShowBullet" checked> Show Bullet</label>
+        </div>
+        <div class="tls-side-row">
+          <label class="fc-label">Side:</label>
+          <input type="text" class="tls-side-input" value="Side" id="sideLabel">
+          <button class="tls-side-btn active" id="btnSideA">A</button>
+          <button class="tls-side-btn" id="btnSideB">B</button>
+        </div>
+        <div class="tls-checkboxes" style="margin-top:8px;">
+          <label class="checkbox-label"><input type="checkbox" id="chkHideTracklist"> Hide Tracklist</label>
+          <label class="checkbox-label"><input type="checkbox" id="chkShowProductionInfo"> Show Production Info</label>
+        </div>
+      </div>
+
+      <!-- Barcode Generator -->
+      <div class="tracklist-settings-card" id="barcodeCard">
+        <div class="tls-title">BARCODE</div>
+        <div class="field" style="margin-top:8px;">
+          <button class="action-btn primary" style="width:100%" onclick="window.addBarcodeLayer && window.addBarcodeLayer('0000000000000', 'ean13')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right:4px;"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="11" y1="8" x2="11" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/></svg>
+            Add Barcode to Canvas
+          </button>
+        </div>
+      </div>
+
+      <!-- Free Placement -->
+      <div class="flex-row toggle-row" id="placementRow">
+        <span><b>Free placement</b> <span class="desc">Drag any block or picture right where it sits</span></span>
+        <label class="switch"><input type="checkbox" id="freePlacementToggle" checked><span class="track"><span class="thumb"></span></span></label>
+      </div>
+
+      <div class="form-grid project-details-card" id="projectDetails">
+        <div class="field">
+          <label>Album Name</label>
+          <input type="text" id="albumNameInput" value="Album Title" oninput="if(window.syncTracksToCanvas) window.syncTracksToCanvas()">
+        </div>
+        <div class="field">
+          <label>Artist Name</label>
+          <input type="text" id="artistNameInput" value="Artist Name" oninput="if(window.syncTracksToCanvas) window.syncTracksToCanvas()">
+        </div>
+      </div>
+
+      <div class="tracklists" id="trackListsPanel">
+        <p class="editor-help">Edit titles and durations below. Add tracks with <kbd>Enter</kbd> or the + button; drag artwork text on the preview to position it.</p>
+        <!-- SIDE A -->
+        <div class="tracklist" id="sideA">
+          <div class="tl-header">
+            <h4>Side A</h4>
+            <span class="total-time" id="totalA">TOTAL 0:00</span>
+          </div>
+          <div class="tl-tracks" id="tracksA">
+            <!-- tracks generated here -->
+          </div>
+          <div class="tl-add">
+            <input type="text" placeholder="Add custom track(s)" class="name-input" id="addNameA">
+            <input type="text" placeholder="MM:SS" class="time-input" id="addTimeA">
+            <button id="btnAddA">+</button>
+          </div>
+        </div>
+
+        <!-- SIDE B -->
+        <div class="tracklist" id="sideB">
+          <div class="tl-header">
+            <h4>Side B</h4>
+            <span class="total-time" id="totalB">TOTAL 0:00</span>
+          </div>
+          <div class="tl-tracks" id="tracksB">
+            <!-- tracks generated here -->
+          </div>
+          <div class="tl-add">
+            <input type="text" placeholder="Add custom track(s)" class="name-input" id="addNameB">
+            <input type="text" placeholder="MM:SS" class="time-input" id="addTimeB">
+            <button id="btnAddB">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="wide-btn" id="btnLyricSearch">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right:4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Tracks &amp; Open Lyric Search
+      </button>
+
+      <button class="wide-btn outline" id="btnDiscogs">Search liner notes from Discogs.com</button>
+
+      <div class="field" id="lyricsField">
+        <label>Lyrics / Notes (supports Markdown)</label>
+        <textarea id="lyricsBlockText" rows="4" placeholder="### Lyrics&#10;&#10;You can look up and paste your own lyrics in."></textarea>
+      </div>
+
+      <div class="field" id="productionInfoField">
+        <label>Production Info (supports Markdown)</label>
+        <textarea id="productionInfoText" rows="3">Produced by: Artist Name
+Recorded at: Studio Name</textarea>
+      </div>
+
+      <div class="field" id="stereoTextField">
+        <label>Stereo Text</label>
+        <input type="text" id="stereoTextInput" value="STEREO">
+      </div>
+
+      <!-- Cassette Label Text & Layout Controls -->
+      <div class="tracklist-settings-card" id="cassetteLabelCard" style="margin-top:10px;">
+        <div class="tls-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>CASSETTE LABEL CONTROLS</span>
+          <div style="display:flex;gap:4px;">
+            <button type="button" class="sub-tab" style="padding:2px 8px;font-size:11px;" id="lblQuickSideA" onclick="window.switchPiece && window.switchPiece('label-a')">Side A</button>
+            <button type="button" class="sub-tab" style="padding:2px 8px;font-size:11px;" id="lblQuickSideB" onclick="window.switchPiece && window.switchPiece('label-b')">Side B</button>
+          </div>
+        </div>
+
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+          <div class="field">
+            <label style="font-size:11px;">Side Indicator</label>
+            <input type="text" id="lblSideInput" value="SIDE A" placeholder="e.g. SIDE A">
+          </div>
+          <div class="field">
+            <label style="font-size:11px;">Format / Sound</label>
+            <input type="text" id="lblStereoInput" value="STEREO" placeholder="e.g. STEREO / DOLBY NR">
+          </div>
+        </div>
+
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="field">
+            <label style="font-size:11px;">Artist (Top)</label>
+            <input type="text" id="lblArtistInput" value="Bonnie Tyler" placeholder="Artist Name">
+          </div>
+          <div class="field">
+            <label style="font-size:11px;">Album (Bottom)</label>
+            <input type="text" id="lblAlbumInput" value="Secret Dreams and Forbidden Fire" placeholder="Album Title">
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:8px;">
+          <label style="font-size:11px;">Label edge cut</label>
+          <label class="checkbox-label"><input type="checkbox" id="lblBevelEnabled" checked> Cut / bevel corners</label>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <label class="checkbox-label"><input type="checkbox" id="lblBevelTop" checked> Top bevel</label>
+            <label class="checkbox-label"><input type="checkbox" id="lblBevelBottom"> Bottom bevel</label>
+          </div>
+          <label for="lblBevelSize" style="font-size:10px;display:flex;justify-content:space-between;margin-top:6px;">
+            <span>Bevel size</span><span id="lblBevelSizeValue">6 mm</span>
+          </label>
+          <input type="range" id="lblBevelSize" min="0" max="12" step="0.5" value="6" style="width:100%;">
+        </div>
+
+        <div class="field">
+          <label style="font-size:11px;display:flex;justify-content:space-between;">
+            <span>Label Tracklist Text (Editable)</span>
+            <span style="font-size:10px;color:var(--text-muted);">Syncs live with canvas</span>
+          </label>
+          <textarea id="lblTracksInput" rows="3" style="width:100%;font-size:12px;font-family:var(--font-sans);padding:6px;border:1px solid var(--border);border-radius:6px;resize:vertical;" placeholder="Tracklist appearing on the cassette label..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Format:</span>
+          <button type="button" class="sub-tab" id="btnLblFmtBullet" style="padding:3px 7px;font-size:11px;">• Bullet</button>
+          <button type="button" class="sub-tab" id="btnLblFmtSlash" style="padding:3px 7px;font-size:11px;">/ Slash</button>
+          <button type="button" class="sub-tab" id="btnLblFmtLines" style="padding:3px 7px;font-size:11px;">↵ Multiline</button>
+          <button type="button" class="sub-tab" id="btnLblSyncTracks" style="padding:3px 8px;font-size:11px;margin-left:auto;color:var(--primary);border-color:var(--primary);">↻ Reset from Tracklist</button>
+        </div>
+
+        <div class="field">
+          <label style="font-size:11px;">Footer / Copyright / Year</label>
+          <input type="text" id="lblFooterInput" value="1986 • Sony Music" placeholder="e.g. 1986 • Sony Music">
+        </div>
+
+        <button type="button" class="action-btn" style="width:100%;font-size:12px;padding:6px;" onclick="window.addNewTextLayer && window.addNewTextLayer()">
+          + Add Extra Text to Label
+        </button>
+      </div>
+    </div><!-- end section-edit-text -->
+
+    <div class="scroll-section-divider"></div>
+
+    <!-- ===== COVER ART SECTION ===== -->
+    <div class="scroll-section" id="section-cover-art">
+      <div class="scroll-section-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Cover Art
+      </div>
+      <div class="cover-art-panel">
+        <div class="ca-header">
+          <span class="ca-title">Select Artwork</span>
+          <span class="ca-breadcrumb">› Your Uploads (<span id="uploadCount">0</span>)</span>
+        </div>
+
+        <div class="ca-upload-area" id="caUploadArea">
+          <input type="file" id="artworkUpload" accept="image/*" multiple style="display:none;">
+          <div class="ca-drop-zone" id="caDropZone">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p>Drop image here or <label for="artworkUpload" style="color:#3b82f6;cursor:pointer;">browse</label></p>
+          </div>
+          <div class="ca-thumbs" id="caThumbs"></div>
+          <p class="editor-help">Click artwork to set it as the cover, or add it as a separate movable layer.</p>
+          <button type="button" class="action-btn" id="btnAddSelectedImage" style="width:100%;" disabled>+ Add Selected as Image Layer</button>
+          <div class="layer-stack-panel">
+            <div class="layer-stack-heading">
+              <span class="ca-title">Layer Order</span>
+              <span class="editor-help">Top is front · drag to reorder</span>
+            </div>
+            <div class="layer-stack-list" id="layerStack" aria-label="Layer order"></div>
+          </div>
+        </div>
+
+        <div class="ca-controls">
+          <div class="ca-control-row">
+            <label class="fc-label">Zoom</label>
+            <input type="range" id="artZoom" min="0.1" max="3" step="0.01" value="1">
+            <span class="fc-val" id="artZoomVal">1.0x</span>
+            <span class="fc-label" style="margin-left:12px;">Sizing</span>
+            <div class="sizing-toggle">
+              <button class="sizing-btn" id="btnArtFit">Fit</button>
+              <button class="sizing-btn active" id="btnArtFill">Fill</button>
+            </div>
+          </div>
+          <div class="ca-control-row">
+            <label class="fc-label">Rotate</label>
+            <input type="range" id="artRotate" min="-180" max="180" step="1" value="0" title="Double click to reset">
+            <button class="rotate-btn" id="btnRotateCCW" title="Rotate 90° CCW">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <button class="rotate-btn" id="btnRotateCW" title="Rotate 90° CW">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
+            <button class="rotate-reset-btn" id="btnResetRotate" title="Click to reset rotation to 0°" data-no-label-edit="true">
+              <span id="artRotateVal">0°</span>
+              <span style="font-size:11px;opacity:0.8;">Reset</span>
+            </button>
+          </div>
+          <div class="ca-control-row">
+            <label class="fc-label">Opacity</label>
+            <input type="range" id="artOpacity" min="0" max="100" step="1" value="100">
+            <span class="fc-val" id="artOpacityVal">100%</span>
+            <button class="fc-reset-btn" id="btnResetArt">Reset</button>
+          </div>
+          <div class="image-crop-controls">
+            <p class="editor-help">Select an image layer, then adjust its crop directly on the canvas.</p>
+            <div class="image-crop-actions">
+              <button type="button" class="action-btn" id="btnStartCrop" disabled>Crop on canvas</button>
+              <button type="button" class="action-btn" id="btnApplyCrop" disabled>Apply crop</button>
+              <button type="button" class="action-btn" id="btnCancelCrop" disabled>Cancel</button>
+              <button type="button" class="fc-reset-btn" id="btnResetCrop" disabled>Reset crop</button>
+            </div>
+            <label class="checkbox-label image-stretch-toggle">
+              <input type="checkbox" id="chkImageStretch" disabled>
+              Stretch freely (corners and edge handles resize independently)
+            </label>
+            <span id="cropStatus" class="editor-help" aria-live="polite">Drag a crop corner to frame the image. The crop keeps its proportions.</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-cover-art -->
+
+    <div class="scroll-section-divider"></div>
+
+    <!-- ===== SHAPES SECTION ===== -->
+    <div class="scroll-section" id="section-shapes">
+      <div class="scroll-section-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><circle cx="12" cy="12" r="8"/><path d="M3 21 21 3"/></svg>
+        Shapes
+      </div>
+      <div class="tracklist-settings-card shape-tools-card">
+        <div class="shape-tools-buttons">
+          <button type="button" class="action-btn" id="btnAddLineShape">+ Line</button>
+          <button type="button" class="action-btn" id="btnAddSquareShape">+ Square</button>
+          <button type="button" class="action-btn" id="btnAddCircleShape">+ Circle</button>
+        </div>
+        <label class="shape-color-row" for="shapeColorInput">
+          <span>Selected shape color</span>
+          <input type="color" id="shapeColorInput" value="#b4436c" disabled>
+        </label>
+        <span id="shapeColorStatus" class="editor-help" aria-live="polite">Select a line, square, or circle to change its color.</span>
+      </div>
+    </div>
+
+    <div class="scroll-section-divider"></div>
+
+    <!-- ===== STUDIO SECTION ===== -->
+    <div class="scroll-section" id="section-studio">
+      <div class="scroll-section-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Production Logos
+      </div>
+      <div class="studio-panel">
+        <div class="ca-header">
+          <div>
+            <span class="ca-title">Production Logos</span>
+            <span class="ca-breadcrumb">› Retro Cassette Badges</span>
+          </div>
+          <label class="studio-upload-btn" title="Upload custom logo image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Upload
+            <input type="file" id="studioLogoUpload" accept="image/*" style="display:none;">
+          </label>
+        </div>
+        <div class="studio-logos-grid" id="studioLogosGrid">
+          <div class="studio-logo-item" data-logo="lo-fi" title="Lo-Fi Stereo Tape Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_lofi.jpg" alt="Lo-Fi" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Lo-Fi Stereo</span>
+          </div>
+          <div class="studio-logo-item" data-logo="hifi" title="Hi-Fi Stereo Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_hifi.jpg" alt="Hi-Fi" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Hi-Fi Stereo</span>
+          </div>
+          <div class="studio-logo-item" data-logo="sony" title="Sony Type I Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_sony.jpg" alt="Sony" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Sony Type I</span>
+          </div>
+          <div class="studio-logo-item" data-logo="dolby" title="Dolby NR System Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_dolby.jpg" alt="Dolby" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Dolby NR</span>
+          </div>
+          <div class="studio-logo-item" data-logo="cro2" title="CrO₂ Chromium Dioxide Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_cro2.jpg" alt="CrO₂" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">CrO₂ Chrome</span>
+          </div>
+          <div class="studio-logo-item" data-logo="metal" title="Metal Position Type IV Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_metal.jpg" alt="Metal" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Metal Type IV</span>
+          </div>
+          <div class="studio-logo-item" data-logo="tdk" title="TDK Audio Cassette Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_tdk.svg" alt="TDK" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">TDK Audio</span>
+          </div>
+          <div class="studio-logo-item" data-logo="maxell" title="Maxell Position Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_maxell.svg" alt="Maxell" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">Maxell Normal</span>
+          </div>
+          <div class="studio-logo-item" data-logo="basf" title="BASF Chrome Extra II Badge">
+            <div class="studio-logo-preview">
+              <img src="assets/logos/logo_basf.svg" alt="BASF" class="studio-logo-img">
+            </div>
+            <span class="studio-logo-label">BASF Chrome</span>
+          </div>
+        </div>
+      </div>
+    </div><!-- end section-studio -->
+
+    </div><!-- end scroll-editor -->
+
+  </div>
+</div>
+
+<!-- Print Preview -->
+<div class="print-preview-overlay" id="printPreviewModal" aria-hidden="true">
+  <section class="print-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="printPreviewTitle">
+    <header class="print-preview-header">
+      <div>
+        <h2 id="printPreviewTitle">A4 Print Preview</h2>
+        <p>Drag placement is optional. Use Auto-pack to restore the print-ready layout.</p>
+      </div>
+      <button class="modal-3d-close" id="printPreviewClose" type="button" aria-label="Close print preview">×</button>
+    </header>
+    <div class="print-preview-controls">
+      <label class="print-manual-toggle">
+        <input type="checkbox" id="printManualPlacement">
+        <span>Manual placement</span>
+      </label>
+      <button class="action-btn" id="printAutoPack" type="button">Auto-pack page</button>
+      <p class="print-manual-warning" id="printManualWarning" role="status" aria-live="polite" hidden>
+        Manual placement is on. You are moving the artwork on the print page; check that every item stays inside the page and does not overlap before exporting.
+      </p>
+    </div>
+    <div class="print-page-viewport">
+      <div class="print-page" id="printPage" aria-label="A4 landscape print page">
+        <canvas class="print-page-item print-page-card" id="printPageCard" aria-label="Folded J-card sheet"></canvas>
+        <canvas class="print-page-item print-page-label-a" id="printPageLabelA" aria-label="Cassette label A"></canvas>
+        <canvas class="print-page-item print-page-label-b" id="printPageLabelB" aria-label="Cassette label B"></canvas>
+      </div>
+    </div>
+    <footer class="print-preview-footer">
+      <span id="printPreviewStatus" role="status" aria-live="polite">Enable Manual placement to drag artwork.</span>
+      <div>
+        <button class="action-btn" id="printPreviewCancel" type="button">Close</button>
+        <button class="action-btn primary" id="printPreviewExport" type="button">Save to PDF</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<!-- 3D Modal -->
+<div class="modal-overlay" id="modal3d">
+  <div class="modal-3d" role="dialog" aria-modal="true" aria-labelledby="modal3dTitle">
+    <div class="modal-3d-head">
+      <div>
+        <strong id="modal3dTitle">Cassette labels</strong>
+        <span class="modal-3d-hint">Drag to rotate · Shift/right-drag to move · scroll to zoom</span>
+      </div>
+      <button class="modal-3d-close" id="modal3dClose" type="button" aria-label="Close 3D preview">×</button>
+    </div>
+    <div class="modal-3d-body" id="modal3dBody">
+      <div class="preview-dimension preview-dimension-cassette">CASSETTE (W × H × D) <span>101.5 × 63.5 × 9 mm</span><small>4 × 2.5 × 0.35 in</small></div>
+      <div class="preview-dimension preview-dimension-case">CASE (W × H × D) <span>108 × 70 × 12.7 mm</span><small>4.25 × 2.75 × 0.5 in</small></div>
+      <div id="modal3dLoading" class="modal-3d-loading" role="status" aria-live="polite">
+        <span class="preview-spinner" aria-hidden="true"></span>
+        <span id="modal3dLoadingText">Preparing your cassette…</span>
+      </div>
+    </div>
+    <div class="modal-3d-controls">
+      <div class="preview-product-controls" role="group" aria-label="Preview product">
+        <button id="view3d_cassette" class="active" type="button" aria-pressed="true">Cassette</button>
+        <button id="view3d_closedCase" type="button" aria-pressed="false">Case</button>
+      </div>
+      <div class="preview-side-controls" role="group" aria-label="Cassette side">
+        <button id="view3d_sideA" class="active" type="button" aria-pressed="true">Side A</button>
+        <button id="view3d_sideB" type="button" aria-pressed="false">Side B</button>
+      </div>
+      <button id="view3d_label" class="active preview-label-toggle" type="button" aria-pressed="true">Label artwork on</button>
+      <label class="preview-zoom-control" for="view3d_zoom">
+        <span>Zoom</span>
+        <input id="view3d_zoom" type="range" min="0" max="100" value="42" aria-label="Zoom cassette preview">
+      </label>
+      <button id="view3d_reset" type="button">Reset view</button>
+      <button id="view3d_auto" type="button" aria-pressed="false">Auto-rotate off</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="js/state.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/3d.js"></script>
+
+</body>
+</html>
