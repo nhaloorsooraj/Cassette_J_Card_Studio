@@ -1536,13 +1536,7 @@ const STUDIO_LOGOS = {
   'lo-fi':  { src: 'assets/logos/logo_lofi.jpg',  name: 'Lo-Fi Stereo', w: 18, h: 12 },
   'hifi':   { src: 'assets/logos/logo_hifi.jpg',  name: 'Hi-Fi Stereo', w: 18, h: 12 },
   'hi-fi':  { src: 'assets/logos/logo_hifi.jpg',  name: 'Hi-Fi Stereo', w: 18, h: 12 },
-  'sony':   { src: 'assets/logos/logo_sony.jpg',  name: 'Sony Type I',  w: 20, h: 13 },
-  'dolby':  { src: 'assets/logos/logo_dolby.jpg', name: 'Dolby System', w: 20, h: 10 },
-  'cro2':   { src: 'assets/logos/logo_cro2.jpg',  name: 'CrO₂ Chrome',  w: 18, h: 12 },
-  'metal':  { src: 'assets/logos/logo_metal.jpg', name: 'Metal Type IV',w: 20, h: 14 },
-  'tdk':    { src: 'assets/logos/logo_tdk.svg',   name: 'TDK Audio',    w: 18, h: 9 },
-  'maxell': { src: 'assets/logos/logo_maxell.svg',name: 'Maxell Normal',w: 18, h: 9 },
-  'basf':   { src: 'assets/logos/logo_basf.svg',  name: 'BASF Chrome',  w: 18, h: 12 }
+  
 };
 
 // Preloaded logo images cache
