@@ -6,7 +6,7 @@
 
 Design it in your browser. Arrange it on the page. Print it at home.
 
-
+[![Status: Work in Progress](https://img.shields.io/badge/status-work%20in%20progress-orange)](#)
 [![License: CC0-1.0](https://img.shields.io/badge/License-CC0_1.0-lightgrey.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![Runs in your browser](https://img.shields.io/badge/runs-in%20your%20browser-5265a5?style=flat-square)](#)
 [![No account required](https://img.shields.io/badge/account-not%20required-8a5b9b?style=flat-square)](#)
@@ -67,5 +67,12 @@ The PDF uses **A4 landscape** pages. Page 1 places the folded J-card and both ca
 
 For accurate sizing, choose **100% / Actual size** in your print dialog and turn off “Fit to page.” Printer margins vary, so make a test print before printing multiple copies. Check the preview for overlaps and page placement before exporting.
 
-## Help people find it
+## Disclaimer
 
+This project is provided **“AS IS” and “AS AVAILABLE,” without warranties of any kind**, express or implied, including, without limitation, warranties of merchantability, fitness for a particular purpose, accuracy, reliability, or non-infringement.
+
+To the maximum extent permitted by applicable law, the authors and contributors shall not be liable for any direct, indirect, incidental, special, consequential, exemplary, or other damages, losses, claims, or liabilities arising from or related to the use, misuse, inability to use, or reliance upon this project or any information, software, data, documentation, or other materials provided through it.
+
+Users are solely responsible for evaluating the suitability, safety, legality, and consequences of using this project.
+
+This disclaimer does not exclude or limit liability where such exclusion or limitation is prohibited by applicable law.
