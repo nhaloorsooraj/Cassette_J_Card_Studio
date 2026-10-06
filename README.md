@@ -76,3 +76,5 @@ To the maximum extent permitted by applicable law, the authors and contributors 
 Users are solely responsible for evaluating the suitability, safety, legality, and consequences of using this project.
 
 This disclaimer does not exclude or limit liability where such exclusion or limitation is prohibited by applicable law.
+
+Users are responsible for ensuring that any images, artwork, logos, trademarks, text, fonts, or other content they import into or use with this project are owned by them or used with appropriate authorization. The authors and contributors do not assume responsibility for user-provided content or for any infringement or other legal consequences resulting from its use.
