@@ -61,7 +61,7 @@ The app is a static site; it has no build step or application backend.
 
 1. Enter an album and artist name, then edit the Side A and Side B tracklists.
 2. Add text, artwork, shapes, logos, or production details. Drag items on the canvas to position them.
-3. Select **Save project** and choose a file name and folder. Use **Open project** to return to it later, or **Save as…** for a separate copy. **Share project** still creates a JSON snapshot.
+3. Select **Save project** and choose a file name and folder. Use **Open project** to return to it later, or **Save as…** for a separate copy.
 4. Select **Export** to open the print preview.
 5. Turn on **Manual placement** to move the J-card and labels, or choose **Auto-pack page** to restore the suggested layout.
 6. Select **Save to PDF** in the preview.

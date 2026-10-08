@@ -2354,20 +2354,6 @@ document.querySelectorAll('.lo-btn[data-piece]').forEach(btn => {
 });
 
 // ── Action Bar ────────────────────────────────────────────────────────────────
-document.getElementById('btnShare').addEventListener('click', () => {
-  const payload = JSON.stringify(getProjectSnapshot(), null, 2);
-  const file = new File([payload], 'jcard-project.json', { type: 'application/json' });
-  if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
-    navigator.share({ title: 'J-Card project', files: [file] }).catch(error => {
-      if(error.name !== 'AbortError'){
-        console.error('Could not share the J-Card project:', error);
-        downloadProjectFile(payload);
-      }
-    });
-    return;
-  }
-  downloadProjectFile(payload);
-});
 document.getElementById('btnResetDesign').addEventListener('click', async () => {
   if(!confirm('Are you sure you want to reset your design? All saved progress will be lost.')) return;
   try{
@@ -2378,15 +2364,6 @@ document.getElementById('btnResetDesign').addEventListener('click', async () => 
     alert('The saved project could not be removed from browser storage.');
   }
 });
-
-function downloadProjectFile(payload){
-  const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'jcard-project.json';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 // ── Wide Buttons ──────────────────────────────────────────────────────────────
 document.getElementById('btnLyricSearch').addEventListener('click', () => {
