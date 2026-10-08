@@ -1022,10 +1022,10 @@ document.getElementById('btnResetFontColor').addEventListener('click', () => {
   }
 });
 
-document.getElementById('btnSaveDefaultFont').addEventListener('click', () => {
+document.getElementById('btnSaveDefaultFont').addEventListener('click', async () => {
   const vals = getFontPanelValues();
   Object.assign(defaultFontSettings, vals);
-  const saved = saveProject();
+  const saved = await saveProject();
   const status = document.getElementById('defaultFontSaveStatus');
   status.textContent = saved ? 'Default font saved' : 'Could not save default font';
   setTimeout(() => { status.textContent = ''; }, 2500);
@@ -1253,18 +1253,27 @@ function initCoverArt(){
 
   addImageButton.addEventListener('click', addSelectedImageLayer);
 
-  restoredArtworkLibrary.forEach(savedArt => {
-    if(!savedArt || !savedArt.dataUrl) return;
-    const img = new Image();
-    img.onload = () => {
-      artworkImages.push({ img, url: savedArt.dataUrl, dataUrl: savedArt.dataUrl, name: savedArt.name || 'Restored artwork' });
-      if(savedArt.dataUrl === restoredSelectedArtworkDataUrl) selectedArtworkIdx = artworkImages.length - 1;
-      uploadCountEl.textContent = artworkImages.length;
-      renderArtThumbs();
-    };
-    img.onerror = () => console.error('Failed to restore artwork image:', savedArt.name || 'unknown');
-    img.src = savedArt.dataUrl;
-  });
+  let artworkRestoreGeneration = 0;
+  window.restoreArtworkLibrary = async () => {
+    const generation = ++artworkRestoreGeneration;
+    const library = restoredArtworkLibrary;
+    const selected = restoredSelectedArtworkDataUrl;
+    artworkImages = [];
+    selectedArtworkIdx = -1;
+    const restored = await Promise.all(library.map(savedArt => new Promise(resolve => {
+      if(!savedArt?.dataUrl) return resolve(null);
+      const img = new Image();
+      img.onload = () => resolve({ img, url: savedArt.dataUrl, dataUrl: savedArt.dataUrl, name: savedArt.name || 'Restored artwork' });
+      img.onerror = () => resolve(null);
+      img.src = savedArt.dataUrl;
+    })));
+    if(generation !== artworkRestoreGeneration) return;
+    artworkImages = restored.filter(Boolean);
+    selectedArtworkIdx = artworkImages.findIndex(art => art.dataUrl === selected);
+    uploadCountEl.textContent = artworkImages.length;
+    renderArtThumbs();
+  };
+  window.restoreArtworkLibrary();
 
   function applyArtworkToCanvas(){
     const p = currentPiece();
@@ -1642,16 +1651,13 @@ function initStudio(){
     });
   }
 
-  restoredCustomLogoLibrary.forEach(savedLogo => {
-    if(savedLogo && typeof savedLogo.dataUrl === 'string' && savedLogo.dataUrl.startsWith('data:image/')){
-      customLogoLibrary.push({
-        dataUrl: savedLogo.dataUrl,
-        name: savedLogo.name || 'Uploaded logo'
-      });
-    }
-  });
-  restoredCustomLogoLibrary = [];
-  renderCustomLogos();
+  window.restoreLogoLibrary = () => {
+    customLogoLibrary = restoredCustomLogoLibrary
+      .filter(logo => typeof logo?.dataUrl === 'string' && logo.dataUrl.startsWith('data:image/'))
+      .map(logo => ({ dataUrl: logo.dataUrl, name: logo.name || 'Uploaded logo' }));
+    renderCustomLogos();
+  };
+  window.restoreLogoLibrary();
 
   // Handle custom logo image upload
   const uploadInput = document.getElementById('studioLogoUpload');
@@ -1767,7 +1773,6 @@ function addLogoLayer(logoId){
   });
 }
 
-const PROJECT_STORAGE_KEY = 'jcard_state';
 
 function getProjectSnapshot(){
   const fields = {};
@@ -1791,18 +1796,10 @@ function getProjectSnapshot(){
       })
     };
   });
-  const usedArtwork = new Set(
-    Object.values(savedState).flatMap(pieceState =>
-      pieceState.layers.filter(layer => layer.role === 'coverArt' && layer.src).map(layer => layer.src)
-    )
-  );
   const selectedArtwork = artworkImages[selectedArtworkIdx];
   const artworkLibrary = artworkImages
-    .filter(art => art.dataUrl && !usedArtwork.has(art.dataUrl))
+    .filter(art => art.dataUrl)
     .map(({ dataUrl, name }) => ({ dataUrl, name }));
-  if(selectedArtwork?.dataUrl && !artworkLibrary.some(art => art.dataUrl === selectedArtwork.dataUrl)){
-    artworkLibrary.push({ dataUrl: selectedArtwork.dataUrl, name: selectedArtwork.name });
-  }
 
   return {
     version: 2,
@@ -1833,23 +1830,23 @@ function getProjectSnapshot(){
   };
 }
 
-function saveProject(){
+async function saveProject(){
   try{
-    localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(getProjectSnapshot()));
+    await projectStorage.save(getProjectSnapshot());
     return true;
   }catch(error){
     console.error('Could not save the J-Card project:', error);
-    alert('Save failed. Browser storage may be full or unavailable. Remove some large uploaded images and try again.');
+    const status = document.getElementById('projectSaveStatus');
+    if(status) status.textContent = 'Browser save unavailable — use Save project for a file backup';
+    alert('Could not save on this device. Storage may be full or blocked. Your current design is still open. Use Save project to save a file without browser storage, or free device storage and try again.');
     return false;
   }
 }
 
-function restoreSavedProject(){
-  let saved;
+async function restoreSavedProject(saved){
   try{
-    const raw = localStorage.getItem(PROJECT_STORAGE_KEY);
-    if(!raw) return false;
-    saved = JSON.parse(raw);
+    if(saved === undefined) saved = await projectStorage.load();
+    if(!saved) return false;
   }catch(error){
     console.error('Could not read the saved J-Card project:', error);
     alert('The saved project could not be read. A new design will be opened.');
@@ -1994,10 +1991,13 @@ function restoreSavedProject(){
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
   initUiColorPreference();
   seedDefaults();
-  const restored = restoreSavedProject();
+  document.body.inert = true;
+  let restored;
+  try { restored = await restoreSavedProject(); }
+  finally { document.body.inert = false; }
   buildTabs();
   initTabs();
   resizeCanvasForPiece();
@@ -2368,18 +2368,10 @@ document.getElementById('btnShare').addEventListener('click', () => {
   }
   downloadProjectFile(payload);
 });
-document.getElementById('btnSave').addEventListener('click', () => {
-  if(!saveProject()) return;
-  const btn = document.getElementById('btnSave');
-  const status = document.getElementById('projectSaveStatus');
-  btn.textContent = '✓ Saved';
-  if(status) status.textContent = 'Saved on this device';
-  setTimeout(() => { btn.textContent = 'Save'; }, 1500);
-});
-document.getElementById('btnResetDesign').addEventListener('click', () => {
+document.getElementById('btnResetDesign').addEventListener('click', async () => {
   if(!confirm('Are you sure you want to reset your design? All saved progress will be lost.')) return;
   try{
-    localStorage.removeItem(PROJECT_STORAGE_KEY);
+    await projectStorage.clear();
     location.reload();
   }catch(error){
     console.error('Could not reset the saved J-Card project:', error);

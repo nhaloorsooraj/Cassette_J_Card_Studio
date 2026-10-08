@@ -43,7 +43,7 @@ Create custom artwork for mixtapes, demos, independent releases, and personal co
 * **Keep your layout in control:** drag artwork layers forward or backward, and use alignment guides as you position them.
 * **Tune your labels:** set bevel size and choose top and/or bottom corners.
 * **Start quickly:** use the built-in interactive tutorial, then keep creating at your own pace.
-* **Save your work:** store a project in this browser or share/download a JSON snapshot.
+* **Save and open project files:** save a self-contained `.jcard` file with your design and original images. Repeated images are stored once as binary assets, without reducing image quality. **Save project** updates the chosen file during the current session; **Save as…** chooses another location. **Open project** restores `.jcard` files or older JSON snapshots. Browsers without direct file access download the file instead, using their download-location settings. Browser saves from earlier versions remain readable and migrate to IndexedDB.
 
 ## Start designing
 
@@ -61,7 +61,7 @@ The app is a static site; it has no build step or application backend.
 
 1. Enter an album and artist name, then edit the Side A and Side B tracklists.
 2. Add text, artwork, shapes, logos, or production details. Drag items on the canvas to position them.
-3. Select **Save** to keep the project in this browser, or **Share project** to create a JSON snapshot.
+3. Select **Save project** and choose a file name and folder. Use **Open project** to return to it later, or **Save as…** for a separate copy. **Share project** still creates a JSON snapshot.
 4. Select **Export** to open the print preview.
 5. Turn on **Manual placement** to move the J-card and labels, or choose **Auto-pack page** to restore the suggested layout.
 6. Select **Save to PDF** in the preview.
@@ -83,3 +83,13 @@ Users are solely responsible for evaluating the suitability, safety, legality, a
 This disclaimer does not exclude or limit liability where such exclusion or limitation is prohibited by applicable law.
 
 Users are responsible for ensuring that any images, artwork, logos, trademarks, text, fonts, or other content they import into or use with this project are owned by them or used with appropriate authorization. The authors and contributors do not assume responsibility for user-provided content or for any infringement or other legal consequences resulting from its use.
+
+### Project file format
+
+`.jcard` version 1 contains the ASCII signature `JCARD001`, a 4-byte little-endian manifest length, a UTF-8 JSON manifest, and the original binary image assets in manifest order. The manifest contains `version`, project `json`, and an `assets` list of `prefix` and byte `size`. Image references use `{ "__jcardImage": index }`; duplicate images share the same index. Uploaded artwork, custom logos, and images used in layers travel with the project. Opening validates the container before replacing the active design.
+
+Direct file pickers require a supporting browser and a secure context (HTTPS or localhost). Otherwise Save downloads a `.jcard` file and Open uses a normal file upload picker. File handles are kept only for the current session; use Open after reloading to resume editing an existing file.
+
+### Browser checks
+
+Run `python tests/run-project-check.py --browser /path/to/chromium` (or an Edge executable). The checks use a temporary browser profile and cover large project saves, migration, failed-save recovery, file round trips, opening invalid files, file-picker/download flows, and flip-button layout. Native picker interactions are simulated.

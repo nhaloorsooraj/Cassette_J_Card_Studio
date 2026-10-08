@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=20261008-project-files-2">
 </head>
 <body>
 
@@ -169,7 +169,10 @@
 
     <div class="action-bar">
       <button class="action-btn" id="btnShare">Share project</button>
-      <button class="action-btn" id="btnSave">Save</button>
+      <button class="action-btn" id="btnOpenProject">Open project</button>
+      <input type="file" id="projectFileInput" accept=".jcard,.json" hidden>
+      <button class="action-btn" id="btnSave">Save project</button>
+      <button class="action-btn" id="btnSaveAs">Save as…</button>
       <button class="action-btn" id="btnPrintPreview" type="button">Print Preview</button>
       <button class="action-btn" id="preview3dBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right:4px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -518,10 +521,10 @@ Recorded at: Studio Name</textarea>
             <span class="fc-val" id="artOpacityVal">100%</span>
             <button class="fc-reset-btn" id="btnResetArt">Reset</button>
           </div>
-          <div class="ca-control-row">
+          <div class="ca-control-row image-flip-row">
             <span class="fc-label">Flip</span>
-            <button type="button" class="rotate-btn image-flip-btn" id="btnFlipHorizontal" aria-pressed="false">↔ Horizontal</button>
-            <button type="button" class="rotate-btn image-flip-btn" id="btnFlipVertical" aria-pressed="false">↕ Vertical</button>
+            <button type="button" class="image-flip-btn" id="btnFlipHorizontal" aria-pressed="false"><span aria-hidden="true">↔</span><span>Horizontal</span></button>
+            <button type="button" class="image-flip-btn" id="btnFlipVertical" aria-pressed="false"><span aria-hidden="true">↕</span><span>Vertical</span></button>
           </div>
           <div class="image-crop-controls">
             <p class="editor-help">Select an image layer, then adjust its crop directly on the canvas.</p>
@@ -681,13 +684,15 @@ Recorded at: Studio Name</textarea>
 </div>
 
 
-<script src="js/state.js"></script>
-<script src="js/canvas.js"></script>
-<script src="js/export.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/tutorial.js"></script>
+<script src="js/state.js?v=20261008-project-files-2"></script>
+<script src="js/canvas.js?v=20261008-project-files-2"></script>
+<script src="js/export.js?v=20261008-project-files-2"></script>
+<script src="js/storage.js?v=20261008-project-files-2"></script>
+<script src="js/ui.js?v=20261008-project-files-2"></script>
+<script src="js/project-file.js?v=20261008-project-files-2"></script>
+<script src="js/tutorial.js?v=20261008-project-files-2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/3d.js"></script>
+<script src="js/3d.js?v=20261008-project-files-2"></script>
 
 </body>
 </html>

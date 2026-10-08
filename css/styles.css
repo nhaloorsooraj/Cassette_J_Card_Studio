@@ -1946,6 +1946,17 @@ body.dark-mode .inline-edit-wrap {
 /* Selection controls extend across the workspace without entering exports. */
 #selectionCanvas { position: fixed; pointer-events: none; z-index: 2; }
 .stage { touch-action: none; }
-.image-flip-btn { width: auto; padding: 6px 10px; gap: 4px; }
+.image-flip-row { flex-wrap: wrap; }
+.image-flip-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; width: auto; min-height: 32px; height: auto;
+  padding: 6px 10px; gap: 6px; white-space: nowrap; line-height: 1.2;
+  font: inherit; border: 1px solid var(--border); border-radius: 5px;
+  background: var(--surface); color: var(--text-main); cursor: pointer;
+}
+.image-flip-btn:hover { border-color: var(--primary); }
+.image-flip-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .image-flip-btn[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
 .image-flip-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.action-bar { flex-wrap: wrap; }
