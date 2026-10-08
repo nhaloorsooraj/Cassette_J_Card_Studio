@@ -41,7 +41,8 @@ Create custom artwork for mixtapes, demos, independent releases, and personal co
 
 * **Get a feel for the final piece:** inspect your design in an interactive 3D cassette and case preview.
 * **Keep your layout in control:** drag artwork layers forward or backward, and use alignment guides as you position them.
-* **Tune your labels:** set bevel size and choose top and/or bottom corners.
+* **Tune your labels:** set bevel size and choose top and/or bottom corners. Artwork automatically clips to the label outline and circular cutouts in the editor, print output, and 3D preview.
+* **Match both sides:** select an image and use **Copy placement to Side B** (or Side A). Choose an existing image to keep its artwork, or add a matching copy. Position, size, rotation, flips, and crop transfer together.
 * **Start quickly:** use the built-in interactive tutorial, then keep creating at your own pace.
 * **Save and open project files:** save a self-contained `.jcard` file with your design and original images. Repeated images are stored once as binary assets, without reducing image quality. **Save project** updates the chosen file during the current session; **Save as…** chooses another location. **Open project** restores `.jcard` files or older JSON snapshots. Browsers without direct file access download the file instead, using their download-location settings. Browser saves from earlier versions remain readable and migrate to IndexedDB.
 
@@ -64,7 +65,7 @@ The app is a static site; it has no build step or application backend.
 3. Select **Save project** and choose a file name and folder. Use **Open project** to return to it later, or **Save as…** for a separate copy.
 4. Select **Export** to open the print preview.
 5. Turn on **Manual placement** to move the J-card and labels, or choose **Auto-pack page** to restore the suggested layout.
-6. Select **Save to PDF** in the preview.
+6. Toggle **Show cut marks** to include or hide cut outlines in the preview and PDF, then select **Save to PDF**.
 
 ## Print it right
 

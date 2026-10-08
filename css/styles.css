@@ -464,6 +464,19 @@ body {
 }
 .print-page.manual-placement .print-page-item { cursor: grab; }
 .print-page.manual-placement .print-page-item:active { cursor: grabbing; }
+.print-size-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--border); }
+.print-size-controls[hidden], .print-dimensions[hidden] { display:none; }
+.print-size-controls label { display:flex; align-items:center; gap:6px; font-size:12px; }
+.print-size-controls input[type=number] { width:76px; }
+.print-size-controls input[type=number], .print-size-controls select { padding:6px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--text-main); }
+.print-dimensions { position:absolute; pointer-events:none; border:1px solid #146baf; box-sizing:border-box; z-index:5; color:#125486; font:11px/1.4 monospace; }
+.print-dimension-width { position:absolute; top:3px; left:0; width:100%; text-align:center; border-bottom:1px solid #146baf; background:rgba(255,255,255,.9); white-space:nowrap; }
+.print-dimension-width::before { content:'◀'; float:left; }
+.print-dimension-width::after { content:'▶'; float:right; }
+.print-dimension-height { position:absolute; right:3px; top:24px; bottom:0; writing-mode:vertical-rl; text-align:center; border-left:1px solid #146baf; background:rgba(255,255,255,.9); white-space:nowrap; }
+.print-dimension-height::before { content:'◀'; position:absolute; top:0; }
+.print-dimension-height::after { content:'▶'; position:absolute; bottom:0; }
+#printResizeHandle { position:absolute; right:0; bottom:0; width:18px; height:18px; border:2px solid white; background:#146baf; pointer-events:auto; cursor:nwse-resize; touch-action:none; padding:0; }
 .print-preview-footer {
   border-top: 1px solid var(--border);
   border-bottom: 0;
@@ -2013,3 +2026,8 @@ body.dark-mode .inline-edit-wrap {
 .typography-studio .editor-help { margin: 0; line-height: 1.5; }
 .typography-studio button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 420px) { .typography-main-controls { grid-template-columns: 1fr; } }
+
+.print-page-item { border: 0; }
+.print-page.manual-placement .print-page-item { outline: 1px dashed rgba(95,105,115,.65); }
+.image-placement-copy { display: grid; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; }
+.image-placement-copy select { width: 100%; min-width: 0; padding: 7px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); border-radius: 5px; }

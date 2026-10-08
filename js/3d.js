@@ -78,20 +78,6 @@ function makeLabelCanvas(pieceId) {
   const context = canvas.getContext('2d');
   if (!context) throw new Error(`Could not prepare the "${pieceId}" label texture.`);
 
-  // Punch out ONLY the two reel holes matching state.js exactly
-  if (piece.reelHoles) {
-    context.save();
-    context.globalCompositeOperation = 'destination-out';
-    piece.reelHoles.forEach(hole => {
-      const x = (hole.x / piece.w) * canvas.width;
-      const y = (hole.y / piece.h) * canvas.height;
-      const radius = ((hole.r + 0.5) / piece.w) * canvas.width;
-      context.beginPath();
-      context.arc(x, y, radius, 0, Math.PI * 2);
-      context.fill();
-    });
-    context.restore();
-  }
   return canvas;
 }
 

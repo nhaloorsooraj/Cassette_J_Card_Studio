@@ -1394,6 +1394,7 @@ function initCoverArt(){
   }
 
   function syncImageControls(){
+    window.syncImagePlacementControls?.();
     const layer = selectedLayer();
     const imageSelected = layer?.type === 'image';
     imageControlBase = imageSelected ? { id: layer.id, w: layer.w, h: layer.h } : null;
@@ -1812,6 +1813,7 @@ function getProjectSnapshot(){
     artworkLibrary,
     selectedArtworkDataUrl: selectedArtwork?.dataUrl || null,
     customLogoLibrary: customLogoLibrary.map(({ dataUrl, name }) => ({ dataUrl, name })),
+    print: { showCutMarks: printShowCutMarks, layout: structuredClone(printLayout) },
     view: {
       showGuides,
       showCenterAlignment,
@@ -1912,6 +1914,8 @@ async function restoreSavedProject(saved){
     if(Array.isArray(saved.artworkLibrary)) restoredArtworkLibrary = saved.artworkLibrary;
     if(Array.isArray(saved.customLogoLibrary)) restoredCustomLogoLibrary = saved.customLogoLibrary;
     if(typeof saved.selectedArtworkDataUrl === 'string') restoredSelectedArtworkDataUrl = saved.selectedArtworkDataUrl;
+    setPrintCutMarks(saved.print?.showCutMarks !== false);
+    restorePrintLayout(saved.print?.layout);
     if(saved.view && typeof saved.view === 'object'){
       showGuides = saved.view.showGuides !== false;
       showCenterAlignment = saved.view.showCenterAlignment !== false;

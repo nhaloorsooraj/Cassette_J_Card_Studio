@@ -20,7 +20,7 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs): super().__init__(*args, directory=str(root), **kwargs)
     def do_GET(self):
         if self.path == '/_project_check.html':
-            html = (root/'index.html').read_text(encoding='utf-8').replace('</body>', '<script src="tests/editor-check.js"></script><script src="tests/history-check.js"></script><script src="tests/typography-check.js"></script><script src="tests/project-check.js"></script></body>')
+            html = (root/'index.html').read_text(encoding='utf-8').replace('</body>', '<script src="tests/editor-check.js"></script><script src="tests/history-check.js"></script><script src="tests/typography-check.js"></script><script src="tests/print-label-check.js"></script><script src="tests/project-check.js"></script></body>')
             self.send_response(200)
             self.send_header('Content-Type','text/html; charset=utf-8')
             self.end_headers()

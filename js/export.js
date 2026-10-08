@@ -4,7 +4,7 @@ const PRINT_DPI = 300;
 const MM_TO_IN = 1/25.4;
 
 // ── Render a single piece to an off-screen canvas ────────────────────────────
-function renderPieceToCanvas(pieceId, dpi){
+function renderPieceToCanvas(pieceId, dpi, { cutMarks = false } = {}){
   const p = PIECES.find(x=>x.id===pieceId);
   const s = state[pieceId];
   const scale = dpi * MM_TO_IN;
@@ -12,6 +12,8 @@ function renderPieceToCanvas(pieceId, dpi){
   off.width  = Math.round(p.w * scale);
   off.height = Math.round(p.h * scale);
   const octx = off.getContext('2d');
+  octx.save();
+  if(p.shape === 'label') clipLabelArtwork(octx, p, scale, s.labelShape);
   octx.fillStyle = s.bgColor || '#F4F0E6';
 
   if(p.shape==='label'){
@@ -22,19 +24,28 @@ function renderPieceToCanvas(pieceId, dpi){
   }
 
   s.layers.forEach(layer => drawLayerScaled(octx, layer, scale));
-  if(p.shape === 'label' && p.reelHoles){
-    octx.save();
-    octx.strokeStyle = 'rgba(70, 78, 74, 0.8)';
-    octx.lineWidth = 0.3 * scale;
-    octx.setLineDash([0.1 * scale, 0.7 * scale]);
-    p.reelHoles.forEach(hole => {
-      octx.beginPath();
-      octx.arc(hole.x * scale, hole.y * scale, hole.r * scale, 0, Math.PI * 2);
-      octx.stroke();
-    });
-    octx.restore();
-  }
+  octx.restore();
+  if(cutMarks) drawPrintCutMarks(octx, p, scale, s.labelShape);
   return off;
+}
+
+function drawPrintCutMarks(context, piece, scale, shape){
+  context.save();
+  context.strokeStyle = '#828282';
+  context.lineWidth = 0.25 * scale;
+  context.setLineDash([1 * scale, 0.7 * scale]);
+  const inset = context.lineWidth / 2;
+  if(piece.shape === 'label'){
+    traceCassetteLabelShape(context, inset, inset, piece.w * scale - inset * 2,
+      piece.h * scale - inset * 2, scale, shape);
+    context.stroke();
+    for(const hole of piece.reelHoles || []){
+      context.beginPath();
+      context.arc(hole.x * scale, hole.y * scale, hole.r * scale, 0, Math.PI * 2);
+      context.stroke();
+    }
+  } else context.strokeRect(inset, inset, piece.w * scale - inset * 2, piece.h * scale - inset * 2);
+  context.restore();
 }
 
 // ── Draw one layer into an off-screen canvas at any DPI ──────────────────────
@@ -173,7 +184,7 @@ function drawLayerScaled(octx, layer, scale){
 //
 //  Single-sheet: blit jcard at dstX=0, then blit jcard-back[39..104] at dstX=104
 //
-function renderFoldedJcardCanvas(dpi){
+function renderFoldedJcardCanvas(dpi, { cutMarks = false } = {}){
   const scale  = dpi * MM_TO_IN;
   const totalW = JCARD_FLAP_W + JCARD_SPINE_W + JCARD_FRONT_W + JCARD_FRONT_W; // 169mm
   const totalH = JCARD_H;
@@ -198,6 +209,7 @@ function renderFoldedJcardCanvas(dpi){
     dstX, 0, srcW, out.height
   );
 
+  if(cutMarks) drawPrintCutMarks(octx, { w: totalW, h: totalH }, scale);
   return out;
 }
 
@@ -224,6 +236,37 @@ const PRINT_LABEL_GAP_MM = 6;
 let printLayout = getAutoPackedPrintLayout();
 let printPreviewOpener = null;
 let manualPrintPlacementEnabled = false;
+let printShowCutMarks = true;
+let selectedPrintItem = 'card';
+
+function restorePrintLayout(saved){
+  printLayout = getAutoPackedPrintLayout();
+  for(const key of Object.keys(printLayout)){
+    const rect = saved?.[key];
+    if(rect && ['x','y','w','h'].every(field => Number.isFinite(rect[field])) &&
+      rect.w >= 5 && rect.h >= 5 && rect.w <= PRINT_PAGE_WIDTH_MM && rect.h <= PRINT_PAGE_HEIGHT_MM){
+      printLayout[key] = {w:rect.w, h:rect.h,
+        x:Math.max(0, Math.min(rect.x, PRINT_PAGE_WIDTH_MM-rect.w)),
+        y:Math.max(0, Math.min(rect.y, PRINT_PAGE_HEIGHT_MM-rect.h))};
+    }
+  }
+  updatePrintPreviewItems();
+}
+
+function resizePrintItem(width, height){
+  if(!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+  const rect = printLayout[selectedPrintItem];
+  if(document.getElementById('printLockRatio').checked){
+    const scale = Math.min(PRINT_PAGE_WIDTH_MM / width, PRINT_PAGE_HEIGHT_MM / height,
+      Math.max(1, 5 / width, 5 / height));
+    width *= scale; height *= scale;
+  }
+  rect.w = Math.max(5, Math.min(PRINT_PAGE_WIDTH_MM, width));
+  rect.h = Math.max(5, Math.min(PRINT_PAGE_HEIGHT_MM, height));
+  rect.x = Math.max(0, Math.min(rect.x, PRINT_PAGE_WIDTH_MM - rect.w));
+  rect.y = Math.max(0, Math.min(rect.y, PRINT_PAGE_HEIGHT_MM - rect.h));
+  updatePrintPreviewItems();
+}
 
 function getAutoPackedPrintLayout(){
   const cardWidth = JCARD_FLAP_W + JCARD_SPINE_W + JCARD_FRONT_W * 2;
@@ -258,6 +301,16 @@ function updatePrintPreviewItems(){
     element.style.width = `${rect.w * pxPerMm}px`;
     element.style.height = `${rect.h * pxPerMm}px`;
   });
+  const rect = printLayout[selectedPrintItem];
+  const overlay = document.getElementById('printDimensions');
+  overlay.hidden = !manualPrintPlacementEnabled;
+  Object.assign(overlay.style, {left:`${rect.x*pxPerMm}px`, top:`${rect.y*pxPerMm}px`,
+    width:`${rect.w*pxPerMm}px`, height:`${rect.h*pxPerMm}px`});
+  document.getElementById('printDimensionWidth').textContent = `${rect.w.toFixed(1)} mm`;
+  document.getElementById('printDimensionHeight').textContent = `${rect.h.toFixed(1)} mm`;
+  document.getElementById('printSelectedItem').value = selectedPrintItem;
+  document.getElementById('printItemWidth').value = +rect.w.toFixed(2);
+  document.getElementById('printItemHeight').value = +rect.h.toFixed(2);
 }
 
 function preparePrintPreview(){
@@ -269,9 +322,9 @@ function preparePrintPreview(){
 
   const previewDpi = 120;
   const previews = [
-    [cardCanvas, renderFoldedJcardCanvas(previewDpi)],
-    [labelACanvas, renderPieceToCanvas('label-a', previewDpi)],
-    [labelBCanvas, renderPieceToCanvas('label-b', previewDpi)]
+    [cardCanvas, renderFoldedJcardCanvas(previewDpi, { cutMarks: printShowCutMarks })],
+    [labelACanvas, renderPieceToCanvas('label-a', previewDpi, { cutMarks: printShowCutMarks })],
+    [labelBCanvas, renderPieceToCanvas('label-b', previewDpi, { cutMarks: printShowCutMarks })]
   ];
   previews.forEach(([target, source]) => {
     target.width = source.width;
@@ -284,15 +337,24 @@ function preparePrintPreview(){
   return true;
 }
 
+function setPrintCutMarks(enabled){
+  printShowCutMarks = !!enabled;
+  document.getElementById('printShowCutMarks').checked = printShowCutMarks;
+  if(document.getElementById('printPreviewModal').classList.contains('open')) preparePrintPreview();
+}
+document.getElementById('printShowCutMarks').addEventListener('change', event => setPrintCutMarks(event.target.checked));
+
 function setManualPrintPlacement(enabled){
   manualPrintPlacementEnabled = enabled;
   const page = document.getElementById('printPage');
   const warning = document.getElementById('printManualWarning');
   const status = document.getElementById('printPreviewStatus');
   page?.classList.toggle('manual-placement', enabled);
+  document.getElementById('printSizeControls').hidden = !enabled;
+  updatePrintPreviewItems();
   if(warning) warning.hidden = !enabled;
   if(status) status.textContent = enabled
-    ? 'Manual placement is on. Drag the card or either label on the page.'
+    ? 'Drag artwork to move it. Drag its corner handle or enter dimensions to resize.'
     : 'Enable Manual placement to drag artwork.';
 }
 
@@ -320,8 +382,11 @@ function closePrintPreview(){
 
 function beginPrintItemDrag(event){
   if(event.button !== 0 || !manualPrintPlacementEnabled) return;
+  pushHistory();
   const item = event.currentTarget;
   const layoutKey = item.dataset.layoutKey;
+  selectedPrintItem = layoutKey;
+  updatePrintPreviewItems();
   const startLayout = printLayout[layoutKey];
   const page = document.getElementById('printPage');
   const bounds = page.getBoundingClientRect();
@@ -336,13 +401,14 @@ function beginPrintItemDrag(event){
   const move = moveEvent => {
     const next = printLayout[layoutKey];
     next.x = Math.min(Math.max(0, originalX + (moveEvent.clientX - startX) / pxPerMm), PRINT_PAGE_WIDTH_MM - next.w);
-    const minY = layoutKey === 'card' ? 6 : 2;
+    const minY = 0;
     next.y = Math.min(Math.max(minY, originalY + (moveEvent.clientY - startY) / pxPerMm), PRINT_PAGE_HEIGHT_MM - next.h);
     updatePrintPreviewItems();
     const status = document.getElementById('printPreviewStatus');
     if(status) status.textContent = `${item.getAttribute('aria-label')} at ${next.x.toFixed(1)} mm, ${next.y.toFixed(1)} mm.`;
   };
   const end = () => {
+    window.projectHistory?.scheduleUpdate();
     item.removeEventListener('pointermove', move);
     item.removeEventListener('pointerup', end);
     item.removeEventListener('pointercancel', end);
@@ -359,7 +425,58 @@ document.getElementById('printPageCard')?.setAttribute('data-layout-key', 'card'
 document.getElementById('printPageLabelA')?.setAttribute('data-layout-key', 'labelA');
 document.getElementById('printPageLabelB')?.setAttribute('data-layout-key', 'labelB');
 document.getElementById('printManualPlacement')?.addEventListener('change', event => setManualPrintPlacement(event.target.checked));
+document.getElementById('printSelectedItem').addEventListener('change', event => {
+  selectedPrintItem = event.target.value;
+  updatePrintPreviewItems();
+});
+for(const [id, field] of [['printItemWidth','w'], ['printItemHeight','h']]){
+  document.getElementById(id).addEventListener('change', event => {
+    const rect = printLayout[selectedPrintItem];
+    const value = Number(event.target.value);
+    if(value > 0 && Number.isFinite(value)){
+      pushHistory();
+      const factor = value / rect[field];
+      const locked = document.getElementById('printLockRatio').checked;
+      resizePrintItem(field === 'w' ? value : rect.w * (locked ? factor : 1),
+        field === 'h' ? value : rect.h * (locked ? factor : 1));
+    }else updatePrintPreviewItems();
+  });
+}
+document.getElementById('printResetSize').addEventListener('click', () => {
+  pushHistory();
+  const standard = getAutoPackedPrintLayout()[selectedPrintItem];
+  resizePrintItem(standard.w, standard.h);
+});
+document.getElementById('printResizeHandle').addEventListener('pointerdown', event => {
+  if(event.button !== 0 || !manualPrintPlacementEnabled) return;
+  event.preventDefault();
+  pushHistory();
+  const handle = event.currentTarget;
+  const original = {...printLayout[selectedPrintItem]};
+  const startX = event.clientX, startY = event.clientY;
+  const pxPerMm = document.getElementById('printPage').getBoundingClientRect().width / PRINT_PAGE_WIDTH_MM;
+  handle.setPointerCapture(event.pointerId);
+  const move = next => {
+    let w = Math.max(5, original.w + (next.clientX-startX)/pxPerMm);
+    let h = Math.max(5, original.h + (next.clientY-startY)/pxPerMm);
+    if(document.getElementById('printLockRatio').checked){
+      const factor = Math.abs(w/original.w-1) >= Math.abs(h/original.h-1) ? w/original.w : h/original.h;
+      w = original.w*factor; h = original.h*factor;
+    }
+    resizePrintItem(w,h);
+  };
+  const end = () => {
+    window.projectHistory?.scheduleUpdate();
+    handle.removeEventListener('pointermove', move);
+    handle.removeEventListener('pointerup', end);
+    handle.removeEventListener('pointercancel', end);
+  };
+  handle.addEventListener('pointermove', move);
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+});
 document.getElementById('printAutoPack')?.addEventListener('click', () => {
+  pushHistory();
   printLayout = getAutoPackedPrintLayout();
   if(preparePrintPreview()){
     manualPrintPlacementEnabled = false;
@@ -392,20 +509,13 @@ async function exportJcardPDF(){
     const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'landscape' });
 
     // ── PAGE 1: SINGLE-SHEET FOLDED PRINT ─────────────────────────────────────
-    const sheetW = JCARD_FLAP_W + JCARD_SPINE_W + JCARD_FRONT_W + JCARD_FRONT_W; // 169mm
-    const sheetH = JCARD_H; // 101.5mm
+    const sheetW = printLayout.card.w;
+    const sheetH = printLayout.card.h;
     const sheetX = printLayout.card.x;
     const sheetY = printLayout.card.y;
 
-    const sheetCanvas  = renderFoldedJcardCanvas(dpi);
+    const sheetCanvas  = renderFoldedJcardCanvas(dpi, { cutMarks: printShowCutMarks });
     pdf.addImage(sheetCanvas.toDataURL('image/png'), 'PNG', sheetX, sheetY, sheetW, sheetH);
-
-    // Cut border
-    pdf.setDrawColor(130,130,130);
-    pdf.setLineDashPattern([1.5,1.2],0);
-    pdf.setLineWidth(0.3);
-    pdf.rect(sheetX, sheetY, sheetW, sheetH);
-    pdf.setLineDashPattern([],0);
 
     // Panel labels above card
     pdf.setFontSize(6);
@@ -417,42 +527,30 @@ async function exportJcardPDF(){
       { cx: JCARD_FLAP_W + JCARD_SPINE_W + JCARD_FRONT_W*1.5,   label:'BACK / TRACKLIST' },
     ];
     panelLabels.forEach(l=>{
-      pdf.text(l.label, sheetX+l.cx, sheetY-5, { align:'center' });
+      pdf.text(l.label, sheetX+l.cx * sheetW / (JCARD_FLAP_W + JCARD_SPINE_W + JCARD_FRONT_W*2), sheetY-5, { align:'center' });
     });
 
     // Instruction below card
     pdf.setFontSize(7);
     pdf.setTextColor(80,80,80);
-    const labelAImage = renderPieceToCanvas('label-a', dpi).toDataURL('image/png');
-    const labelBImage = renderPieceToCanvas('label-b', dpi).toDataURL('image/png');
-    pdf.addImage(labelAImage, 'PNG', printLayout.labelA.x, printLayout.labelA.y, PRINT_LABEL_WIDTH_MM, PRINT_LABEL_HEIGHT_MM);
-    pdf.addImage(labelBImage, 'PNG', printLayout.labelB.x, printLayout.labelB.y, PRINT_LABEL_WIDTH_MM, PRINT_LABEL_HEIGHT_MM);
-    pdf.setDrawColor(130,130,130);
-    pdf.setLineDashPattern([1,1],0);
-    pdf.setLineWidth(0.25);
-    pdf.rect(printLayout.labelA.x, printLayout.labelA.y, PRINT_LABEL_WIDTH_MM, PRINT_LABEL_HEIGHT_MM);
-    pdf.rect(printLayout.labelB.x, printLayout.labelB.y, PRINT_LABEL_WIDTH_MM, PRINT_LABEL_HEIGHT_MM);
-    pdf.setLineDashPattern([],0);
+    const labelAImage = renderPieceToCanvas('label-a', dpi, { cutMarks: printShowCutMarks }).toDataURL('image/png');
+    const labelBImage = renderPieceToCanvas('label-b', dpi, { cutMarks: printShowCutMarks }).toDataURL('image/png');
+    pdf.addImage(labelAImage, 'PNG', printLayout.labelA.x, printLayout.labelA.y, printLayout.labelA.w, printLayout.labelA.h);
+    pdf.addImage(labelBImage, 'PNG', printLayout.labelB.x, printLayout.labelB.y, printLayout.labelB.w, printLayout.labelB.h);
     pdf.setFontSize(6); pdf.setTextColor(120,60,80);
-    pdf.text('LABEL A', printLayout.labelA.x + PRINT_LABEL_WIDTH_MM/2, printLayout.labelA.y - 2, { align:'center' });
-    pdf.text('LABEL B', printLayout.labelB.x + PRINT_LABEL_WIDTH_MM/2, printLayout.labelB.y - 2, { align:'center' });
+    pdf.text('LABEL A', printLayout.labelA.x + printLayout.labelA.w/2, printLayout.labelA.y - 2, { align:'center' });
+    pdf.text('LABEL B', printLayout.labelB.x + printLayout.labelB.w/2, printLayout.labelB.y - 2, { align:'center' });
 
     // ── PAGE 2: FRONT reference ───────────────────────────────────────────────
     pdf.addPage('a4','landscape');
     const cX=(pageW-JCARD_W)/2, cY=(pageH-JCARD_H)/2;
-    pdf.addImage(renderPieceToCanvas('jcard',dpi).toDataURL('image/png'),'PNG',cX,cY,JCARD_W,JCARD_H);
-    pdf.setDrawColor(130,130,130); pdf.setLineDashPattern([1.5,1.2],0); pdf.setLineWidth(0.3);
-    pdf.rect(cX,cY,JCARD_W,JCARD_H);
-    pdf.setLineDashPattern([],0);
+    pdf.addImage(renderPieceToCanvas('jcard',dpi, { cutMarks: printShowCutMarks }).toDataURL('image/png'),'PNG',cX,cY,JCARD_W,JCARD_H);
     pdf.setFontSize(7); pdf.setTextColor(80,80,80);
     pdf.text('Page 2 \u2014 FRONT SIDE (Flap + Spine + Cover) \u2014 reference for 2-sided printing', pageW/2, cY-4, {align:'center'});
 
     // ── PAGE 3: BACK reference ────────────────────────────────────────────────
     pdf.addPage('a4','landscape');
-    pdf.addImage(renderPieceToCanvas('jcard-back',dpi).toDataURL('image/png'),'PNG',cX,cY,JCARD_W,JCARD_H);
-    pdf.setDrawColor(130,130,130); pdf.setLineDashPattern([1.5,1.2],0); pdf.setLineWidth(0.3);
-    pdf.rect(cX,cY,JCARD_W,JCARD_H);
-    pdf.setLineDashPattern([],0);
+    pdf.addImage(renderPieceToCanvas('jcard-back',dpi, { cutMarks: printShowCutMarks }).toDataURL('image/png'),'PNG',cX,cY,JCARD_W,JCARD_H);
     pdf.setFontSize(7); pdf.setTextColor(80,80,80);
     pdf.text('Page 3 \u2014 BACK SIDE (Tracklist) \u2014 reference for 2-sided printing', pageW/2, cY-4, {align:'center'});
 

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20261008-type-6">
+<link rel="stylesheet" href="css/styles.css?v=20261008-print-7">
 </head>
 <body>
 
@@ -538,6 +538,13 @@ Recorded at: Studio Name</textarea>
             <button type="button" class="image-flip-btn" id="btnFlipHorizontal" aria-pressed="false"><span aria-hidden="true">↔</span><span>Horizontal</span></button>
             <button type="button" class="image-flip-btn" id="btnFlipVertical" aria-pressed="false"><span aria-hidden="true">↕</span><span>Vertical</span></button>
           </div>
+          <div class="image-placement-copy">
+            <label class="fc-label" for="copyImageTarget">Match image placement on the other side</label>
+            <select id="copyImageTarget" disabled aria-label="Image on the other side"></select>
+            <button type="button" class="action-btn" id="btnCopyImagePlacement" disabled>Copy placement to Side B</button>
+            <span class="editor-help">Copies position, size, rotation, flips, and crop. An existing image keeps its artwork.</span>
+            <span class="editor-help" id="imagePlacementStatus" aria-live="polite"></span>
+          </div>
           <div class="image-crop-controls">
             <p class="editor-help">Select an image layer, then adjust its crop directly on the canvas.</p>
             <div class="image-crop-actions">
@@ -635,16 +642,29 @@ Recorded at: Studio Name</textarea>
         <input type="checkbox" id="printManualPlacement">
         <span>Manual placement</span>
       </label>
+      <label class="print-manual-toggle"><input type="checkbox" id="printShowCutMarks" checked><span>Show cut marks</span></label>
       <button class="action-btn" id="printAutoPack" type="button">Auto-pack page</button>
       <p class="print-manual-warning" id="printManualWarning" role="status" aria-live="polite" hidden>
-        Manual placement is on. You are moving the artwork on the print page; check that every item stays inside the page and does not overlap before exporting.
+        Select artwork to move or resize it. Dimensions are actual printed millimetres at 100% / Actual size. Auto-pack restores standard cassette sizes.
       </p>
+    </div>
+    <div id="printSizeControls" class="print-size-controls" hidden>
+      <label>Artwork <select id="printSelectedItem"><option value="card">Folded J-card</option><option value="labelA">Label A</option><option value="labelB">Label B</option></select></label>
+      <label>Width (mm) <input id="printItemWidth" type="number" min="5" max="297" step="0.1"></label>
+      <label>Height (mm) <input id="printItemHeight" type="number" min="5" max="210" step="0.1"></label>
+      <label><input id="printLockRatio" type="checkbox" checked> Keep proportions</label>
+      <button id="printResetSize" class="action-btn" type="button">Reset size</button>
     </div>
     <div class="print-page-viewport">
       <div class="print-page" id="printPage" aria-label="A4 landscape print page">
         <canvas class="print-page-item print-page-card" id="printPageCard" aria-label="Folded J-card sheet"></canvas>
         <canvas class="print-page-item print-page-label-a" id="printPageLabelA" aria-label="Cassette label A"></canvas>
         <canvas class="print-page-item print-page-label-b" id="printPageLabelB" aria-label="Cassette label B"></canvas>
+        <div id="printDimensions" class="print-dimensions" hidden>
+          <span id="printDimensionWidth" class="print-dimension-width"></span>
+          <span id="printDimensionHeight" class="print-dimension-height"></span>
+          <button id="printResizeHandle" type="button" aria-label="Resize selected print artwork; use width and height fields for precise sizing" title="Drag to resize"></button>
+        </div>
       </div>
     </div>
     <footer class="print-preview-footer">
@@ -696,19 +716,20 @@ Recorded at: Studio Name</textarea>
 </div>
 
 
-<script src="js/state.js?v=20261008-type-6"></script>
-<script src="js/canvas.js?v=20261008-type-6"></script>
-<script src="js/export.js?v=20261008-type-6"></script>
-<script src="js/storage.js?v=20261008-type-6"></script>
-<script src="js/fonts.js?v=20261008-type-6"></script>
-<script src="js/ui.js?v=20261008-type-6"></script>
-<script src="js/typography.js?v=20261008-type-6"></script>
-<script src="js/project-file.js?v=20261008-type-6"></script>
-<script src="js/history.js?v=20261008-type-6"></script>
-<script src="js/recovery.js?v=20261008-type-6"></script>
-<script src="js/tutorial.js?v=20261008-type-6"></script>
+<script src="js/state.js?v=20261008-print-7"></script>
+<script src="js/canvas.js?v=20261008-print-7"></script>
+<script src="js/export.js?v=20261008-print-7"></script>
+<script src="js/storage.js?v=20261008-print-7"></script>
+<script src="js/fonts.js?v=20261008-print-7"></script>
+<script src="js/ui.js?v=20261008-print-7"></script>
+<script src="js/image-placement.js?v=20261008-print-7"></script>
+<script src="js/typography.js?v=20261008-print-7"></script>
+<script src="js/project-file.js?v=20261008-print-7"></script>
+<script src="js/history.js?v=20261008-print-7"></script>
+<script src="js/recovery.js?v=20261008-print-7"></script>
+<script src="js/tutorial.js?v=20261008-print-7"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/3d.js?v=20261008-type-6"></script>
+<script src="js/3d.js?v=20261008-print-7"></script>
 
 </body>
 </html>

@@ -51,6 +51,17 @@ function traceCassetteLabelShape(context, x, y, w, h, scale, settings = {}){
   context.closePath();
 }
 
+// Shared printable label mask: bevelled outline minus the two reel holes.
+function clipLabelArtwork(context, piece, scale, settings){
+  traceCassetteLabelShape(context, 0, 0, piece.w * scale, piece.h * scale, scale, settings);
+  for(const hole of piece.reelHoles || []){
+    context.moveTo((hole.x + hole.r) * scale, hole.y * scale);
+    context.arc(hole.x * scale, hole.y * scale, hole.r * scale, 0, Math.PI * 2);
+    context.closePath();
+  }
+  context.clip('evenodd');
+}
+
 const FONTS = [
   {id:'mono', css:"'JetBrains Mono', monospace", label:'Mono'},
   {id:'display', css:"'Archivo Expanded', sans-serif", label:'Display'},

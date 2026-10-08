@@ -223,6 +223,9 @@ function render(){
   const W = p.w*MM_PX, H = p.h*MM_PX;
   ctx.clearRect(0,0,W,H);
 
+  ctx.save();
+  if(p.shape === 'label') clipLabelArtwork(ctx, p, MM_PX, s.labelShape);
+
   // Background
   ctx.fillStyle = s.bgColor || '#F4F0E6';
   if(p.shape === 'label'){
@@ -247,6 +250,7 @@ function render(){
 
   // Layers
   s.layers.forEach(layer => drawLayer(layer));
+  ctx.restore();
 
   renderSelectionOverlay();
 

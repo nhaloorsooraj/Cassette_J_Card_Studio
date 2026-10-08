@@ -94,6 +94,7 @@ window.addEventListener('load', async () => {
     await window.runEditorChecks(check);
     await window.runHistoryChecks(check);
     await window.runTypographyChecks(check);
+    await window.runPrintLabelChecks(check);
     output.textContent = 'PASS: ' + checks.join('; ');
   }catch(error){ output.textContent = 'FAIL: ' + error.stack + '\nPassed: ' + checks.join('; '); }
 });
