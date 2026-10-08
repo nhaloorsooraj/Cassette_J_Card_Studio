@@ -3,6 +3,37 @@
 const canvas = document.getElementById('designCanvas');
 const ctx = canvas.getContext('2d');
 const canvasWrap = document.getElementById('canvasWrap');
+const stage = canvasWrap.closest('.stage');
+const selectionCanvas = document.createElement('canvas');
+selectionCanvas.id = 'selectionCanvas';
+selectionCanvas.setAttribute('aria-hidden', 'true');
+stage.appendChild(selectionCanvas);
+
+// Draw editor controls across the visible workspace, independently of print bounds.
+function renderSelectionOverlay(){
+  const viewport = stage.getBoundingClientRect();
+  const artwork = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  selectionCanvas.style.left = `${viewport.left}px`;
+  selectionCanvas.style.top = `${viewport.top}px`;
+  selectionCanvas.style.width = `${stage.clientWidth}px`;
+  selectionCanvas.style.height = `${stage.clientHeight}px`;
+  selectionCanvas.width = Math.round(stage.clientWidth * dpr);
+  selectionCanvas.height = Math.round(stage.clientHeight * dpr);
+  const overlay = selectionCanvas.getContext('2d');
+  const scaleX = artwork.width / (currentPiece().w * MM_PX);
+  const scaleY = artwork.height / (currentPiece().h * MM_PX);
+  overlay.setTransform(dpr * scaleX, 0, 0, dpr * scaleY,
+    dpr * (artwork.left - viewport.left), dpr * (artwork.top - viewport.top));
+  const layer = selectedLayer();
+  if(layer && imageCropLayerId === layer.id) drawImageCropOverlay(layer, overlay);
+  else if(layer) drawSelection(layer, overlay);
+}
+window.addEventListener('resize', renderSelectionOverlay);
+document.addEventListener('scroll', renderSelectionOverlay, true);
+const selectionObserver = new ResizeObserver(renderSelectionOverlay);
+selectionObserver.observe(canvas);
+selectionObserver.observe(stage);
 let imageCropLayerId = null;
 let cropDraft = null;
 let canvasZoom = 1;
@@ -17,6 +48,7 @@ function updateCanvasZoom(){
   canvas.style.height = `${p.h * MM_PX * canvasZoom}px`;
   const resetButton = document.getElementById('btnZoomReset');
   if(resetButton) resetButton.textContent = `${Math.round(canvasZoom * 100)}%`;
+  renderSelectionOverlay();
 }
 
 function resizeCanvasForPiece(){
@@ -74,7 +106,7 @@ function drawReelWindowShape(rw) {
   drawRoundedRect(cx - w/2, cy - h/2, w, h, r);
 }
 
-function drawImageCropOverlay(layer){
+function drawImageCropOverlay(layer, ctx){
   if(!cropDraft || cropDraft.layerId !== layer.id) return;
   const { left, top, right, bottom } = cropDraft;
   const width = layer.w * MM_PX, height = layer.h * MM_PX;
@@ -134,10 +166,10 @@ function applyImageCrop(){
   layer.x += offsetX*Math.cos(angle)-offsetY*Math.sin(angle);
   layer.y += offsetX*Math.sin(angle)+offsetY*Math.cos(angle);
   layer.crop = {
-    left: oldLeft + left*sourceW,
-    right: oldRight + (1-right)*sourceW,
-    top: oldTop + top*sourceH,
-    bottom: oldBottom + (1-bottom)*sourceH
+    left: oldLeft + (layer.flipX ? 1-right : left)*sourceW,
+    right: oldRight + (layer.flipX ? left : 1-right)*sourceW,
+    top: oldTop + (layer.flipY ? 1-bottom : top)*sourceH,
+    bottom: oldBottom + (layer.flipY ? top : 1-bottom)*sourceH
   };
   layer.w *= right-left;
   layer.h *= bottom-top;
@@ -205,12 +237,7 @@ function render(){
   // Layers
   s.layers.forEach(layer => drawLayer(layer));
 
-  // Selection handles
-  if(selectedLayerId){
-    const l = s.layers.find(x=>x.id===selectedLayerId);
-    if(l && imageCropLayerId === l.id) drawImageCropOverlay(l);
-    else if(l) drawSelection(l);
-  }
+  renderSelectionOverlay();
 
   if(showCenterAlignment && (centerAlignmentGuides.vertical.length || centerAlignmentGuides.horizontal.length)){
     ctx.save();
@@ -478,6 +505,7 @@ function drawLayer(layer){
       const sourceH = layer._img.naturalHeight * (1 - top - bottom);
       ctx.save();
       ctx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
+      ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
       ctx.drawImage(layer._img, sourceX, sourceY, sourceW, sourceH, -w/2,-h/2,w,h);
       ctx.restore();
     }
@@ -713,7 +741,7 @@ function layerVisualCenter(layer){
 
 const HANDLE_SIZE = 6; // px on screen
 
-function drawSelection(layer){
+function drawSelection(layer, ctx){
   const b = layerBounds(layer);
   ctx.save();
   ctx.translate(layer.x*MM_PX, layer.y*MM_PX);
@@ -857,8 +885,9 @@ function hitTest(mx,my){
   return null;
 }
 
-canvas.addEventListener('pointerdown', (e)=>{
-  canvas.setPointerCapture(e.pointerId);
+stage.addEventListener('pointerdown', (e)=>{
+  if(e.target.closest('button, input, textarea')) return;
+  stage.setPointerCapture(e.pointerId);
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / (window.devicePixelRatio || 1) / rect.width;
   const scaleY = canvas.height / (window.devicePixelRatio || 1) / rect.height;
@@ -930,7 +959,7 @@ canvas.addEventListener('pointerdown', (e)=>{
   updateLayerToolbar();
 });
 
-canvas.addEventListener('dblclick', (e) => {
+stage.addEventListener('dblclick', (e) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / (window.devicePixelRatio || 1) / rect.width;
   const scaleY = canvas.height / (window.devicePixelRatio || 1) / rect.height;
@@ -947,8 +976,7 @@ canvas.addEventListener('dblclick', (e) => {
   }
 });
 
-canvas.addEventListener('pointermove', (e)=>{
-  if(!dragState) return;
+stage.addEventListener('pointermove', (e)=>{
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / (window.devicePixelRatio || 1) / rect.width;
   const scaleY = canvas.height / (window.devicePixelRatio || 1) / rect.height;
@@ -957,7 +985,7 @@ canvas.addEventListener('pointermove', (e)=>{
   const layer = selectedLayer();
   if(!layer) return;
 
-  if(dragState.mode === 'crop' && cropDraft?.layerId === layer.id){
+  if(dragState?.mode === 'crop' && cropDraft?.layerId === layer.id){
     const dx = x-layer.x, dy = y-layer.y;
     const angle = -(layer.rotation || 0)*Math.PI/180;
     const localX = dx*Math.cos(angle)-dy*Math.sin(angle);
@@ -978,7 +1006,7 @@ canvas.addEventListener('pointermove', (e)=>{
     return;
   }
 
-  if(dragState.mode === 'rotate'){
+  if(dragState?.mode === 'rotate'){
     const dx = x - layer.x;
     const dy = y - layer.y;
     let ang = Math.atan2(dy, dx) * 180 / Math.PI + 90;
@@ -1004,7 +1032,7 @@ canvas.addEventListener('pointermove', (e)=>{
     return;
   }
 
-  if(dragState.mode === 'move' && document.getElementById('freePlacementToggle').checked){
+  if(dragState?.mode === 'move' && document.getElementById('freePlacementToggle').checked){
     const nextX = dragState.origX + (x-dragState.startX);
     const nextY = dragState.origY + (y-dragState.startY);
     layer.x = snapToGrid ? Math.round(nextX / gridSpacingMm) * gridSpacingMm : nextX;
@@ -1036,7 +1064,7 @@ canvas.addEventListener('pointermove', (e)=>{
     render();
   }
 
-  if(dragState.mode === 'resize'){
+  if(dragState?.mode === 'resize'){
     const dx = x - dragState.startX;
     const dy = y - dragState.startY;
 
@@ -1117,21 +1145,21 @@ canvas.addEventListener('pointermove', (e)=>{
         const handle = hitHandle(x, y, layer);
         if(handle){
           if(handle === 'rotate'){
-            canvas.style.cursor = 'grab';
+            stage.style.cursor = 'grab';
             return;
           }
           const cursors = {tl:'nw-resize',tr:'ne-resize',bl:'sw-resize',br:'se-resize',tm:'n-resize',bm:'s-resize',lm:'w-resize',rm:'e-resize'};
-          canvas.style.cursor = cursors[handle] || 'default';
+          stage.style.cursor = cursors[handle] || 'default';
           return;
         }
       }
     }
     const hit = hitTest(x,y);
-    canvas.style.cursor = hit ? 'move' : 'default';
+    stage.style.cursor = hit ? 'move' : 'default';
   }
 });
 
-canvas.addEventListener('dblclick', (e)=>{
+stage.addEventListener('dblclick', (e)=>{
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / (window.devicePixelRatio || 1) / rect.width;
   const scaleY = canvas.height / (window.devicePixelRatio || 1) / rect.height;
@@ -1183,13 +1211,13 @@ function endDrag(){
   dragState = null;
   const hadCenterGuide = centerAlignmentGuides.vertical.length > 0 || centerAlignmentGuides.horizontal.length > 0;
   centerAlignmentGuides = { vertical: [], horizontal: [] };
-  canvas.style.cursor = 'default';
+  stage.style.cursor = 'default';
   if(hadCenterGuide) render();
   if(window.syncImageControls) window.syncImageControls();
   updateLayerToolbar();
 }
-canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
 
 // ── Delete selected layer with Delete/Backspace key ──────────────────────────
 document.addEventListener('keydown', (e) => {

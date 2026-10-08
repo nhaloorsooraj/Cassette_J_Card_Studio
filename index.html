@@ -36,7 +36,7 @@
       <div class="canvas-toolbar-actions">
         <button class="tool-btn" id="btnColorControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0-10 10"></path></svg>
-          Color Controls
+          Color
         </button>
         <button class="tool-btn" id="btnToggleDarkMode" type="button" aria-pressed="false">Dark mode</button>
         <button class="tool-btn" id="btnTutorial" type="button" aria-haspopup="dialog">Tutorial</button>
@@ -92,11 +92,9 @@
     <div class="popup-panel" id="colorPopup">
       <div class="color-top-bar">
         <button class="ct-btn active" id="btnColorize">
-          <span class="rainbow-swatch"></span>
-          Colorize
+          Text Color
         </button>
         <button class="ct-btn" id="btnBackground">
-          <span class="bg-preview-swatch" id="bgSwatchIndicator"></span>
           Background
         </button>
         <button class="ct-btn" id="btnResetColor">
@@ -106,7 +104,7 @@
       </div>
       <div class="color-picker-body">
         <div class="cp-header">
-          <span id="cpHeaderTitle">Colorize</span>
+          <span id="cpHeaderTitle">Text Color</span>
           <button class="close-btn-small" id="closeColorBodyBtn">✕</button>
         </div>
         <div class="swatches-grid">
@@ -519,6 +517,11 @@ Recorded at: Studio Name</textarea>
             <input type="range" id="artOpacity" min="0" max="100" step="1" value="100">
             <span class="fc-val" id="artOpacityVal">100%</span>
             <button class="fc-reset-btn" id="btnResetArt">Reset</button>
+          </div>
+          <div class="ca-control-row">
+            <span class="fc-label">Flip</span>
+            <button type="button" class="rotate-btn image-flip-btn" id="btnFlipHorizontal" aria-pressed="false">↔ Horizontal</button>
+            <button type="button" class="rotate-btn image-flip-btn" id="btnFlipVertical" aria-pressed="false">↕ Vertical</button>
           </div>
           <div class="image-crop-controls">
             <p class="editor-help">Select an image layer, then adjust its crop directly on the canvas.</p>

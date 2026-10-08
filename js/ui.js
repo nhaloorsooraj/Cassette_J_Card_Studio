@@ -1,6 +1,6 @@
 // ui.js
 let currentTextColor = '#000000';
-let activeColorMode = 'text'; // 'text' for Colorize, 'bg' for Background
+let activeColorMode = 'text'; // 'text' for Text Color, 'bg' for Background
 const UI_COLOR_STORAGE_KEY = 'jcard_ui_color';
 const UI_THEME_STORAGE_KEY = 'jcard_ui_theme';
 
@@ -23,7 +23,7 @@ let artworkImages = []; // {img, url, name}
 let selectedArtworkIdx = -1;
 let restoredArtworkLibrary = [];
 let restoredSelectedArtworkDataUrl = null;
-let artSettings = { zoom: 1, rotate: 0, opacity: 1, sizing: 'fill' };
+let artSettings = { zoom: 1, rotate: 0, opacity: 1, sizing: 'fill', flipX: false, flipY: false };
 let customLogoLibrary = [];
 let restoredCustomLogoLibrary = [];
 
@@ -1299,6 +1299,7 @@ function initCoverArt(){
         h: Math.round(fitH * 10) / 10,
         x: p.w/2, y: p.h/2,
         rotation: artSettings.rotate, opacity: artSettings.opacity,
+        flipX: artSettings.flipX, flipY: artSettings.flipY,
         role: 'coverArt'
       });
       render();
@@ -1308,6 +1309,8 @@ function initCoverArt(){
     if(existingArt){
       existingArt.rotation = artSettings.rotate;
       existingArt.opacity = artSettings.opacity;
+      existingArt.flipX = artSettings.flipX;
+      existingArt.flipY = artSettings.flipY;
       render();
       return;
     }
@@ -1342,6 +1345,12 @@ function initCoverArt(){
       document.getElementById('artOpacity').value = String(Math.round(artSettings.opacity * 100));
       document.getElementById('artOpacityVal').textContent = `${Math.round(artSettings.opacity * 100)}%`;
     }
+    const flipTarget = imageSelected ? layer : artSettings;
+    for(const [id, axis] of [['btnFlipHorizontal', 'flipX'], ['btnFlipVertical', 'flipY']]){
+      const button = document.getElementById(id);
+      button.setAttribute('aria-pressed', String(!!flipTarget[axis]));
+      button.disabled = cropActive;
+    }
     document.getElementById('btnArtFit').disabled = imageSelected;
     document.getElementById('btnArtFill').disabled = imageSelected;
     document.getElementById('btnArtFit').classList.toggle('active', artSettings.sizing === 'fit');
@@ -1359,6 +1368,20 @@ function initCoverArt(){
       : 'Select an image layer, then adjust its crop directly on the canvas.';
   }
   window.syncImageControls = syncImageControls;
+  for(const [id, axis] of [['btnFlipHorizontal', 'flipX'], ['btnFlipVertical', 'flipY']]){
+    document.getElementById(id).addEventListener('click', () => {
+      pushHistory();
+      const layer = selectedLayer();
+      if(layer?.type === 'image'){
+        layer[axis] = !layer[axis];
+        render();
+      } else {
+        artSettings[axis] = !artSettings[axis];
+        applyArtworkToCanvas();
+      }
+      syncImageControls();
+    });
+  }
 
   document.getElementById('btnStartCrop').addEventListener('click', () => {
     const layer = selectedLayer();
@@ -1503,7 +1526,7 @@ function initCoverArt(){
   document.getElementById('btnResetArt').addEventListener('click', () => {
     const sel = selectedLayer();
     const imageSelected = sel?.type === 'image';
-    if(!imageSelected) artSettings = { zoom: 1, rotate: 0, opacity: 1, sizing: 'fill' };
+    if(!imageSelected) artSettings = { zoom: 1, rotate: 0, opacity: 1, sizing: 'fill', flipX: false, flipY: false };
     artZoom.value = 1; artRotate.value = 0; artOpacity.value = 100;
     document.getElementById('artZoomVal').textContent = '1.00x';
     document.getElementById('artRotateVal').textContent = '0°';
@@ -1517,17 +1540,20 @@ function initCoverArt(){
         sel.h = imageControlBase.h;
       }
       sel.rotation = 0;
-      if(sel.type === 'image') sel.opacity = 1;
+      if(sel.type === 'image'){ sel.opacity = 1; sel.flipX = false; sel.flipY = false; }
     }
     if(!imageSelected){
       const cover = currentState().layers.find(l => l.role === 'coverArt');
       if(cover){
         cover.rotation = 0;
         cover.opacity = 1;
+        cover.flipX = false;
+        cover.flipY = false;
       }
       applyArtworkToCanvas();
     }
     render();
+    syncImageControls();
   });
 }
 
@@ -2131,7 +2157,7 @@ function setColorMode(mode) {
   activeColorMode = mode;
   if (mode === 'text') {
     btnColorize.classList.add('active'); btnBackground.classList.remove('active'); btnResetColor.classList.remove('active');
-    if (cpHeaderTitle) cpHeaderTitle.textContent = 'Colorize';
+    if (cpHeaderTitle) cpHeaderTitle.textContent = 'Text Color';
     updateColorUI(currentTextColor);
   } else if (mode === 'bg') {
     btnBackground.classList.add('active'); btnColorize.classList.remove('active'); btnResetColor.classList.remove('active');

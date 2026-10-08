@@ -146,6 +146,7 @@ function drawLayerScaled(octx, layer, scale){
       const sourceY = img.naturalHeight * top;
       const sourceW = img.naturalWidth * (1 - left - right);
       const sourceH = img.naturalHeight * (1 - top - bottom);
+      octx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
       octx.drawImage(img,sourceX,sourceY,sourceW,sourceH,-w/2,-h/2,w,h);
     }
 
