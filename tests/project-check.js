@@ -91,6 +91,7 @@ window.addEventListener('load', async () => {
     const a = horizontal.getBoundingClientRect(), b = vertical.getBoundingClientRect();
     check(a.right <= b.left || a.bottom <= b.top, 'flip buttons do not overlap');
     controls.style.width = '';
+    await window.runEditorChecks(check);
     output.textContent = 'PASS: ' + checks.join('; ');
   }catch(error){ output.textContent = 'FAIL: ' + error.stack + '\nPassed: ' + checks.join('; '); }
 });

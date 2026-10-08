@@ -1960,3 +1960,10 @@ body.dark-mode .inline-edit-wrap {
 .image-flip-btn:disabled { opacity: .45; cursor: not-allowed; }
 
 .action-bar { flex-wrap: wrap; }
+
+.select-track-group { padding: 4px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text-main); cursor: pointer; font-size: 11px; }
+.tl-header { flex-wrap: wrap; gap: 6px; }
+.local-font-entry { display: flex; gap: 5px; margin-top: 6px; }
+.local-font-entry input { min-width: 0; width: 130px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
+#btnLoadPCFonts { margin-top: 6px; padding: 5px 8px; font-size: 12px; }
+.ca-controls button:disabled, .ca-controls input:disabled { opacity: .45; cursor: not-allowed; }

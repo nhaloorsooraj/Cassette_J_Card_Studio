@@ -70,6 +70,18 @@ PIECES.forEach(p => state[p.id] = {
 });
 let currentPieceId = PIECES[0].id;
 let selectedLayerId = null;
+let selectedTrackGroup = null;
+function selectedTrackLayers(){
+  if(!selectedTrackGroup || selectedTrackGroup.pieceId !== currentPieceId || selectedTrackGroup.anchor !== selectedLayerId) return [];
+  const side = selectedTrackGroup.side;
+  return currentState().layers.filter(layer => layer.role === `backSide${side}` || layer.role === `backTrack${side}`);
+}
+function fontDefinition(id){
+  if(typeof id === 'string' && id.startsWith('local:')){
+    return { id, label: id.slice(6), css: `${JSON.stringify(id.slice(6))}, sans-serif` };
+  }
+  return FONTS.find(font => font.id === id) || FONTS[0];
+}
 let historyStack = [];
 const MAX_HISTORY = 40;
 

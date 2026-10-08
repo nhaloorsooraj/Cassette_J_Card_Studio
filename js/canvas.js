@@ -26,6 +26,14 @@ function renderSelectionOverlay(){
   overlay.setTransform(dpr * scaleX, 0, 0, dpr * scaleY,
     dpr * (artwork.left - viewport.left), dpr * (artwork.top - viewport.top));
   const layer = selectedLayer();
+  const group = trackGroupBounds();
+  if(group){
+    overlay.strokeStyle = '#3b82f6';
+    overlay.lineWidth = 1.5;
+    overlay.setLineDash([6, 3]);
+    overlay.strokeRect(group.x * MM_PX, group.y * MM_PX, group.w * MM_PX, group.h * MM_PX);
+    return;
+  }
   if(layer && imageCropLayerId === layer.id) drawImageCropOverlay(layer, overlay);
   else if(layer) drawSelection(layer, overlay);
 }
@@ -355,6 +363,7 @@ function renderLayerStack(){
     row.append(thumb, name);
 
     row.addEventListener('click', () => {
+      selectedTrackGroup = null;
       selectedLayerId = layer.id;
       if(layer.type === 'text' || layer.type === 'wraptext'){
         if(window.syncFontPanelToLayer) window.syncFontPanelToLayer(layer);
@@ -422,7 +431,7 @@ function drawLayer(layer){
   ctx.globalAlpha = layer.opacity!==undefined ? layer.opacity : 1;
 
   if(layer.type === 'text'){
-    const fontDef = FONTS.find(f=>f.id===layer.font) || FONTS[0];
+    const fontDef = fontDefinition(layer.font);
     const weight = (layer.bold || layer.fontWeight >= 700) ? (layer.fontWeight||700) : (layer.fontWeight||400);
     const style = layer.italic ? 'italic' : 'normal';
     const variant = layer.smallCaps ? 'small-caps ' : '';
@@ -511,7 +520,7 @@ function drawLayer(layer){
     }
   } else if(layer.type === 'wraptext'){
     // Wrapped text block for cassette labels
-    const fontDef = FONTS.find(f=>f.id===layer.font) || FONTS[0];
+    const fontDef = fontDefinition(layer.font);
     const weight = (layer.bold || (layer.fontWeight||0) >= 700) ? (layer.fontWeight||700) : (layer.fontWeight||400);
     const style = layer.italic ? 'italic' : 'normal';
     const variant = layer.smallCaps ? 'small-caps ' : '';
@@ -863,6 +872,24 @@ function hitImageCropHandle(mx, my, layer){
     Math.abs(localY-corner.y) <= hitDistance)?.id || null;
 }
 
+function trackGroupBounds(){
+  const layers = selectedTrackLayers();
+  if(!layers.length) return null;
+  const points = layers.flatMap(layer => {
+    const b = layerBounds(layer);
+    const left = layer.type === 'text' && layer.align === 'left' ? 0
+      : layer.type === 'text' && layer.align === 'right' ? -b.w : -b.w / 2;
+    const angle = (layer.rotation || 0) * Math.PI / 180;
+    return [[left,-b.h/2],[left+b.w,-b.h/2],[left,b.h/2],[left+b.w,b.h/2]].map(([x,y]) => ({
+      x: layer.x + x*Math.cos(angle)-y*Math.sin(angle),
+      y: layer.y + x*Math.sin(angle)+y*Math.cos(angle)
+    }));
+  });
+  const x = Math.min(...points.map(p => p.x)) - 1;
+  const y = Math.min(...points.map(p => p.y)) - 1;
+  return { x, y, w: Math.max(...points.map(p => p.x)) - x + 1, h: Math.max(...points.map(p => p.y)) - y + 1 };
+}
+
 // Pointer Events
 function hitTest(mx,my){
   const s = currentState();
@@ -894,6 +921,14 @@ stage.addEventListener('pointerdown', (e)=>{
   const x = (e.clientX-rect.left) * scaleX / MM_PX;
   const y = (e.clientY-rect.top) * scaleY / MM_PX;
 
+  const group = trackGroupBounds();
+  if(group && x >= group.x && x <= group.x + group.w && y >= group.y && y <= group.y + group.h){
+    pushHistory();
+    dragState = { mode: 'trackGroup', startX: x, startY: y,
+      members: selectedTrackLayers().map(layer => ({ layer, x: layer.x, y: layer.y })) };
+    return;
+  }
+  selectedTrackGroup = null;
   if(imageCropLayerId && selectedLayer()?.id === imageCropLayerId){
     const layer = selectedLayer();
     const corner = hitImageCropHandle(x, y, layer);
@@ -985,6 +1020,19 @@ stage.addEventListener('pointermove', (e)=>{
   const layer = selectedLayer();
   if(!layer) return;
 
+  if(dragState?.mode === 'trackGroup'){
+    if(!document.getElementById('freePlacementToggle').checked) return;
+    let dx = x - dragState.startX, dy = y - dragState.startY;
+    if(snapToGrid){ dx = Math.round(dx/gridSpacingMm)*gridSpacingMm; dy = Math.round(dy/gridSpacingMm)*gridSpacingMm; }
+    dragState.members.forEach(member => { member.layer.x = member.x + dx; member.layer.y = member.y + dy; });
+    render();
+    return;
+  }
+  if(!dragState && trackGroupBounds()){
+    const group = trackGroupBounds();
+    stage.style.cursor = x >= group.x && x <= group.x + group.w && y >= group.y && y <= group.y + group.h ? 'move' : 'default';
+    return;
+  }
   if(dragState?.mode === 'crop' && cropDraft?.layerId === layer.id){
     const dx = x-layer.x, dy = y-layer.y;
     const angle = -(layer.rotation || 0)*Math.PI/180;
@@ -1318,7 +1366,7 @@ function getLayerToolbar(){
 
 function updateLayerToolbar(){
   const tb = getLayerToolbar();
-  if(!selectedLayerId){
+  if(!selectedLayerId || selectedTrackLayers().length){
     tb.style.display = 'none';
     return;
   }
@@ -1362,6 +1410,7 @@ let _inlineEditEl = null;
 let _inlineEditLayerId = null;
 
 function openInlineEdit(layer, pointerEvent){
+  selectedTrackGroup = null;
   closeInlineEdit();
   _inlineEditLayerId = layer.id;
 

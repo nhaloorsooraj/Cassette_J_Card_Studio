@@ -46,7 +46,7 @@ function drawLayerScaled(octx, layer, scale){
   octx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
 
   if(layer.type==='text'){
-    const fontDef = FONTS.find(f=>f.id===layer.font) || FONTS[0];
+    const fontDef = fontDefinition(layer.font);
     const weight  = layer.fontWeight || (layer.bold ? 700 : 400);
     const style   = layer.italic ? 'italic' : 'normal';
     const variant = layer.smallCaps ? 'small-caps ' : '';
@@ -83,7 +83,7 @@ function drawLayerScaled(octx, layer, scale){
     });
 
   } else if(layer.type==='wraptext'){
-    const fontDef = FONTS.find(f=>f.id===layer.font) || FONTS[0];
+    const fontDef = fontDefinition(layer.font);
     const weight  = layer.fontWeight || (layer.bold ? 700 : 400);
     const style   = layer.italic ? 'italic' : 'normal';
     const variant = layer.smallCaps ? 'small-caps ' : '';

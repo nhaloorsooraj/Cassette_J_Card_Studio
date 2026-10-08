@@ -93,3 +93,11 @@ Direct file pickers require a supporting browser and a secure context (HTTPS or 
 ### Browser checks
 
 Run `python tests/run-project-check.py --browser /path/to/chromium` (or an Edge executable). The checks use a temporary browser profile and cover large project saves, migration, failed-save recovery, file round trips, opening invalid files, file-picker/download flows, and flip-button layout. Native picker interactions are simulated.
+
+### Text, track lists, and image controls
+
+Track edits keep the existing font, size, and placement. New songs inherit the preceding song’s formatting. Use **Select whole list** beside Side A or Side B to select its heading and songs together, then drag the selection in the preview. Click elsewhere to return to individual-layer selection.
+
+Use **Load PC fonts** to add installed font families to the font list after granting browser permission. Where local font enumeration is unavailable, enter an installed family’s exact name and select **Add**. Local font choices are saved with the project; the font must also be installed on another computer to display identically.
+
+Image zoom, rotation, opacity, flips, Fit/Fill, and Reset apply only to the selected image. Select an image first to enable these controls.

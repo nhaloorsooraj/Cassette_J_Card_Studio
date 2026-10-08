@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20261008-project-files-3">
+<link rel="stylesheet" href="css/styles.css?v=20261008-editor-4">
 </head>
 <body>
 
@@ -224,6 +224,12 @@
                 <option value="malayalam">Noto Sans Malayalam</option>
               </select>
             </div>
+            <button type="button" class="action-btn" id="btnLoadPCFonts">Load PC fonts</button>
+            <div class="local-font-entry">
+              <input type="text" id="localFontName" placeholder="Installed font name" aria-label="Installed font name">
+              <button type="button" class="action-btn" id="btnAddPCFont">Add</button>
+            </div>
+            <span class="editor-help" id="localFontStatus" aria-live="polite"></span>
           </div>
           <div class="fc-group">
             <label class="fc-label">Font Size</label>
@@ -333,6 +339,7 @@
         <div class="tracklist" id="sideA">
           <div class="tl-header">
             <h4>Side A</h4>
+            <button type="button" class="select-track-group" id="btnSelectTracksA" title="Select this side’s heading and all songs to move together">Select whole list</button>
             <span class="total-time" id="totalA">TOTAL 0:00</span>
           </div>
           <div class="tl-tracks" id="tracksA">
@@ -349,6 +356,7 @@
         <div class="tracklist" id="sideB">
           <div class="tl-header">
             <h4>Side B</h4>
+            <button type="button" class="select-track-group" id="btnSelectTracksB" title="Select this side’s heading and all songs to move together">Select whole list</button>
             <span class="total-time" id="totalB">TOTAL 0:00</span>
           </div>
           <div class="tl-tracks" id="tracksB">
@@ -683,15 +691,16 @@ Recorded at: Studio Name</textarea>
 </div>
 
 
-<script src="js/state.js?v=20261008-project-files-3"></script>
-<script src="js/canvas.js?v=20261008-project-files-3"></script>
-<script src="js/export.js?v=20261008-project-files-3"></script>
-<script src="js/storage.js?v=20261008-project-files-3"></script>
-<script src="js/ui.js?v=20261008-project-files-3"></script>
-<script src="js/project-file.js?v=20261008-project-files-3"></script>
-<script src="js/tutorial.js?v=20261008-project-files-3"></script>
+<script src="js/state.js?v=20261008-editor-4"></script>
+<script src="js/canvas.js?v=20261008-editor-4"></script>
+<script src="js/export.js?v=20261008-editor-4"></script>
+<script src="js/storage.js?v=20261008-editor-4"></script>
+<script src="js/fonts.js?v=20261008-editor-4"></script>
+<script src="js/ui.js?v=20261008-editor-4"></script>
+<script src="js/project-file.js?v=20261008-editor-4"></script>
+<script src="js/tutorial.js?v=20261008-editor-4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/3d.js?v=20261008-project-files-3"></script>
+<script src="js/3d.js?v=20261008-editor-4"></script>
 
 </body>
 </html>

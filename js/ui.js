@@ -164,6 +164,7 @@ function initTabs(){
 }
 
 function switchPiece(pieceId){
+  selectedTrackGroup = null;
   currentPieceId = pieceId;
   selectedLayerId = null;
   if(window.syncImageControls) window.syncImageControls();
@@ -438,6 +439,20 @@ function fontForText(text, fallback = 'sans'){
 }
 
 function syncTracksToCanvas() {
+  // Keep generated layer identity and user formatting while refreshing content.
+  tracksA.forEach(track => track.id ||= uid());
+  tracksB.forEach(track => track.id ||= uid());
+  const previousLayers = new Map();
+  for(const pieceId of ['jcard', 'jcard-back']){
+    const counts = {};
+    previousLayers.set(pieceId, (state[pieceId]?.layers || []).map(layer => {
+      const index = counts[layer.role] || 0;
+      counts[layer.role] = index + 1;
+      if(layer.role === 'backTrackA') layer.trackId ||= tracksA[index]?.id;
+      if(layer.role === 'backTrackB') layer.trackId ||= tracksB[index]?.id;
+      return layer;
+    }));
+  }
   const jc = state['jcard'];
   if (!jc) return;
 
@@ -584,7 +599,7 @@ function syncTracksToCanvas() {
           text: `${numPrefix}${t.name}${durStr}`,
           font: fontForText(t.name, 'sans'), size: 2.8, color: textColor, bold: false, italic: false,
           align: 'left', textCase: 'none', rotation: 0, opacity: 1,
-          x: panelX + 5, y: 21 + i * 4.3, role: 'backTrackA'
+          x: panelX + 5, y: 21 + i * 4.3, role: 'backTrackA', trackId: t.id
         });
       });
 
@@ -606,7 +621,7 @@ function syncTracksToCanvas() {
           text: `${numPrefix}${t.name}${durStr}`,
           font: fontForText(t.name, 'sans'), size: 2.8, color: textColor, bold: false, italic: false,
           align: 'left', textCase: 'none', rotation: 0, opacity: 1,
-          x: panelX + 5, y: sideBY + 6 + i * 4.3, role: 'backTrackB'
+          x: panelX + 5, y: sideBY + 6 + i * 4.3, role: 'backTrackB', trackId: t.id
         });
       });
     }
@@ -624,6 +639,39 @@ function syncTracksToCanvas() {
     }
   }
 
+  const styleKeys = ['font', 'size', 'fontWeight', 'bold', 'italic', 'color', 'align', 'textCase', 'allCaps',
+    'letterSpacing', 'lineHeight', 'smallCaps', 'shadow', 'outline', 'outlineColor', 'maxW', 'rotation', 'opacity'];
+  for(const [pieceId, previous] of previousLayers){
+    const pieceState = state[pieceId];
+    if(!pieceState) continue;
+    pieceState.layers = pieceState.layers.map(layer => {
+      if(!layer.role || previous.includes(layer)) return layer;
+      const old = previous.find(item => item.role === layer.role &&
+        (layer.trackId ? item.trackId === layer.trackId : true));
+      if(old){
+        // Content follows track edits; typography, placement, and selection stay put.
+        return { ...layer, ...old,
+          text: old.isCustom && (old.generatedText === undefined || old.generatedText === layer.text) ? old.text : layer.text,
+          generatedText: layer.text, trackId: layer.trackId };
+      }
+      if(layer.trackId){
+        const siblings = pieceState.layers.filter(item => item.role === layer.role);
+        const index = siblings.indexOf(layer);
+        const preceding = siblings[index - 1];
+        const template = previous.find(item => item.role === layer.role && item.trackId === preceding?.trackId)
+          || previous.find(item => item.role === layer.role);
+        if(template){
+          styleKeys.forEach(key => { if(template[key] !== undefined) layer[key] = template[key]; });
+          layer.x = template.x;
+          layer.y = template.y + Math.max(4.3, (template.size || 2.8) * (template.lineHeight || 1.25)) *
+            (preceding?.trackId === template.trackId ? 1 : index + 1);
+        }
+      }
+      layer.generatedText = layer.text;
+      return layer;
+    });
+  }
+
   const markDeletedDynamicLayers = (pieceId, repeatedRoles = []) => {
     const pieceState = state[pieceId];
     if(!pieceState) return;
@@ -633,7 +681,7 @@ function syncTracksToCanvas() {
       if(!layer.role) return;
       if(repeated.has(layer.role)){
         const index = repeatedRoleCounts[layer.role] || 0;
-        layer.dynamicKey = `${layer.role}:${index}`;
+        layer.dynamicKey = `${layer.role}:${layer.trackId || index}`;
         repeatedRoleCounts[layer.role] = index + 1;
       } else {
         layer.dynamicKey = layer.role;
@@ -670,12 +718,12 @@ function syncTracksToLabel(forceOverwrite = false) {
         l.opacity = tracklistSettings.hideTracklist ? 0 : 1;
         if(!tracklistSettings.hideTracklist && (forceOverwrite || !l.isCustom)){
           l.text = bulletA;
-          l.font = fontForText(bulletA, 'sans');
+          l.font ||= fontForText(bulletA, 'sans');
         }
       }
       if(l.role === 'labelAlbum' && (forceOverwrite || !l.isCustom)){
         l.text = album;
-        l.font = fontForText(album, 'sans');
+        l.font ||= fontForText(album, 'sans');
       }
       if(l.role === 'labelArtist'){
         if(!tracklistSettings.showArtist) l.opacity = 0;
@@ -683,14 +731,14 @@ function syncTracksToLabel(forceOverwrite = false) {
           l.opacity = 1;
           if(forceOverwrite || !l.isCustom){
             l.text = artist;
-            l.font = fontForText(artist, 'sans');
+            l.font ||= fontForText(artist, 'sans');
           }
         }
       }
       if((l.role === 'labelSideA' || l.role === 'labelSide') && (forceOverwrite || !l.isCustom)) l.text = `${prefix.toUpperCase()} A`;
       if(l.role === 'labelStereo' && (forceOverwrite || !l.isCustom)){
         l.text = stereo;
-        l.font = fontForText(stereo, 'sans');
+        l.font ||= fontForText(stereo, 'sans');
       }
     });
   }
@@ -704,12 +752,12 @@ function syncTracksToLabel(forceOverwrite = false) {
         l.opacity = tracklistSettings.hideTracklist ? 0 : 1;
         if(!tracklistSettings.hideTracklist && (forceOverwrite || !l.isCustom)){
           l.text = bulletB;
-          l.font = fontForText(bulletB, 'sans');
+          l.font ||= fontForText(bulletB, 'sans');
         }
       }
       if(l.role === 'labelAlbum' && (forceOverwrite || !l.isCustom)){
         l.text = album;
-        l.font = fontForText(album, 'sans');
+        l.font ||= fontForText(album, 'sans');
       }
       if(l.role === 'labelArtist'){
         if(!tracklistSettings.showArtist) l.opacity = 0;
@@ -717,14 +765,14 @@ function syncTracksToLabel(forceOverwrite = false) {
           l.opacity = 1;
           if(forceOverwrite || !l.isCustom){
             l.text = artist;
-            l.font = fontForText(artist, 'sans');
+            l.font ||= fontForText(artist, 'sans');
           }
         }
       }
       if((l.role === 'labelSideB' || l.role === 'labelSide') && (forceOverwrite || !l.isCustom)) l.text = `${prefix.toUpperCase()} B`;
       if(l.role === 'labelStereo' && (forceOverwrite || !l.isCustom)){
         l.text = stereo;
-        l.font = fontForText(stereo, 'sans');
+        l.font ||= fontForText(stereo, 'sans');
       }
     });
   }
@@ -934,27 +982,45 @@ function initFontAlignControls(){
   });
 }
 
+function selectTrackSide(side){
+  switchPiece('jcard-back');
+  const layers = currentState().layers.filter(layer => layer.role === `backSide${side}` || layer.role === `backTrack${side}`);
+  if(!layers.length) return;
+  selectedLayerId = layers[0].id;
+  selectedTrackGroup = { pieceId: currentPieceId, side, anchor: selectedLayerId };
+  closeInlineEdit();
+  syncFontPanelToLayer(layers.find(layer => layer.role === `backTrack${side}`) || layers[0]);
+  syncImageControls();
+  render();
+  updateLayerToolbar();
+}
+for(const side of ['A', 'B']) document.getElementById(`btnSelectTracks${side}`).addEventListener('click', () => selectTrackSide(side));
+
 function applyFontToSelected(){
   const layer = selectedLayer();
   if(!layer || (layer.type !== 'text' && layer.type !== 'wraptext')) return;
   const vals = getFontPanelValues();
-  layer.font = vals.font;
-  layer.size = vals.size;
-  layer.fontWeight = vals.fontWeight;
-  layer.bold = vals.fontWeight >= 700;
-  layer.letterSpacing = vals.letterSpacing;
-  layer.smallCaps = vals.smallCaps;
-  layer.italic = vals.italic;
-  layer.allCaps = vals.allCaps;
-  layer.textCase = vals.allCaps ? 'upper' : 'none';
-  layer.shadow = vals.shadow;
-  layer.outline = vals.outline;
+  const targets = selectedTrackLayers().length ? selectedTrackLayers() : [layer];
+  targets.forEach(layer => {
+    layer.font = vals.font;
+    layer.size = vals.size;
+    layer.fontWeight = vals.fontWeight;
+    layer.bold = vals.fontWeight >= 700;
+    layer.letterSpacing = vals.letterSpacing;
+    layer.smallCaps = vals.smallCaps;
+    layer.italic = vals.italic;
+    layer.allCaps = vals.allCaps;
+    layer.textCase = vals.allCaps ? 'upper' : 'none';
+    layer.shadow = vals.shadow;
+    layer.outline = vals.outline;
+  });
   render();
 }
 
 // Sync font panel FROM a layer (when layer clicked)
 window.syncFontPanelToLayer = function(layer){
   if(!layer || (layer.type !== 'text' && layer.type !== 'wraptext')) return;
+  ensureFontOption(layer.font || 'sans');
   document.getElementById('fontSelect').value = layer.font || 'sans';
   document.getElementById('fontSizeSlider').value = layer.size || 5;
   document.getElementById('fontWeightSlider').value = layer.fontWeight || (layer.bold ? 700 : 400);
@@ -973,6 +1039,7 @@ window.syncFontPanelToLayer = function(layer){
 
 window.clearFontPanel = function(){
   // Reset to defaults when nothing selected
+  ensureFontOption(defaultFontSettings.font);
   document.getElementById('fontSelect').value = defaultFontSettings.font;
   document.getElementById('fontSizeSlider').value = defaultFontSettings.size;
   document.getElementById('fontWeightSlider').value = defaultFontSettings.fontWeight;
@@ -1277,7 +1344,6 @@ function initCoverArt(){
 
   function applyArtworkToCanvas(){
     const p = currentPiece();
-    const existingArt = currentState().layers.find(l => l.role === 'coverArt');
 
     if(selectedArtworkIdx >= 0){
       const art = artworkImages[selectedArtworkIdx];
@@ -1311,25 +1377,12 @@ function initCoverArt(){
         flipX: artSettings.flipX, flipY: artSettings.flipY,
         role: 'coverArt'
       });
+      selectedLayerId = currentState().layers[0].id;
       render();
+      syncImageControls();
       return;
     }
 
-    if(existingArt){
-      existingArt.rotation = artSettings.rotate;
-      existingArt.opacity = artSettings.opacity;
-      existingArt.flipX = artSettings.flipX;
-      existingArt.flipY = artSettings.flipY;
-      render();
-      return;
-    }
-
-    const sel = selectedLayer();
-    if(sel){
-      sel.rotation = artSettings.rotate;
-      if(sel.type === 'image') sel.opacity = artSettings.opacity;
-      render();
-    }
   }
 
   function syncImageControls(){
@@ -1354,16 +1407,19 @@ function initCoverArt(){
       document.getElementById('artOpacity').value = String(Math.round(artSettings.opacity * 100));
       document.getElementById('artOpacityVal').textContent = `${Math.round(artSettings.opacity * 100)}%`;
     }
-    const flipTarget = imageSelected ? layer : artSettings;
+    for(const id of ['artZoom', 'artRotate', 'artOpacity', 'btnArtFit', 'btnArtFill',
+      'btnRotateCCW', 'btnRotateCW', 'btnResetRotate', 'btnResetArt']){
+      document.getElementById(id).disabled = !imageSelected || cropActive;
+    }
+    const flipTarget = imageSelected ? layer : {};
     for(const [id, axis] of [['btnFlipHorizontal', 'flipX'], ['btnFlipVertical', 'flipY']]){
       const button = document.getElementById(id);
       button.setAttribute('aria-pressed', String(!!flipTarget[axis]));
-      button.disabled = cropActive;
+      button.disabled = !imageSelected || cropActive;
     }
-    document.getElementById('btnArtFit').disabled = imageSelected;
-    document.getElementById('btnArtFill').disabled = imageSelected;
-    document.getElementById('btnArtFit').classList.toggle('active', artSettings.sizing === 'fit');
-    document.getElementById('btnArtFill').classList.toggle('active', artSettings.sizing !== 'fit');
+
+    document.getElementById('btnArtFit').classList.toggle('active', imageSelected && layer.sizing === 'fit');
+    document.getElementById('btnArtFill').classList.toggle('active', imageSelected && layer.sizing === 'fill');
     document.getElementById('btnStartCrop').disabled = !imageSelected || cropActive;
     document.getElementById('btnApplyCrop').disabled = !cropActive;
     document.getElementById('btnCancelCrop').disabled = !cropActive;
@@ -1379,14 +1435,12 @@ function initCoverArt(){
   window.syncImageControls = syncImageControls;
   for(const [id, axis] of [['btnFlipHorizontal', 'flipX'], ['btnFlipVertical', 'flipY']]){
     document.getElementById(id).addEventListener('click', () => {
-      pushHistory();
       const layer = selectedLayer();
+      if(layer?.type !== 'image' || imageCropLayerId) return;
+      pushHistory();
       if(layer?.type === 'image'){
         layer[axis] = !layer[axis];
         render();
-      } else {
-        artSettings[axis] = !artSettings[axis];
-        applyArtworkToCanvas();
       }
       syncImageControls();
     });
@@ -1417,153 +1471,87 @@ function initCoverArt(){
   });
   syncImageControls();
 
-  // Art controls
   const artZoom = document.getElementById('artZoom');
   const artRotate = document.getElementById('artRotate');
   const artOpacity = document.getElementById('artOpacity');
-  artZoom.value = artSettings.zoom;
-  artRotate.value = artSettings.rotate;
-  artOpacity.value = Math.round(artSettings.opacity * 100);
-  document.getElementById('artZoomVal').textContent = Number(artSettings.zoom).toFixed(2) + 'x';
-  document.getElementById('artRotateVal').textContent = artSettings.rotate + '°';
-  document.getElementById('artOpacityVal').textContent = Math.round(artSettings.opacity * 100) + '%';
-  document.getElementById('btnArtFit').classList.toggle('active', artSettings.sizing === 'fit');
-  document.getElementById('btnArtFill').classList.toggle('active', artSettings.sizing !== 'fit');
-
-  artZoom.addEventListener('input', () => {
-    const zoom = parseFloat(artZoom.value);
-    document.getElementById('artZoomVal').textContent = zoom.toFixed(2) + 'x';
+  const editableImage = () => {
     const layer = selectedLayer();
-    if(layer?.type === 'image' && imageControlBase?.id === layer.id){
-      layer.w = imageControlBase.w * zoom;
-      layer.h = imageControlBase.h * zoom;
-      render();
-    } else {
-      artSettings.zoom = zoom;
-      applyArtworkToCanvas();
-    }
+    return layer?.type === 'image' && !imageCropLayerId ? layer : null;
+  };
+  [artZoom, artRotate, artOpacity].forEach(input => {
+    input.addEventListener('pointerdown', () => { if(editableImage()) pushHistory(); });
+  });
+  artZoom.addEventListener('input', () => {
+    const layer = editableImage();
+    if(!layer || imageControlBase?.id !== layer.id) return;
+    const zoom = Number(artZoom.value);
+    layer.w = imageControlBase.w * zoom;
+    layer.h = imageControlBase.h * zoom;
+    document.getElementById('artZoomVal').textContent = zoom.toFixed(2) + 'x';
+    render();
   });
   artRotate.addEventListener('input', () => {
-    const rotation = parseInt(artRotate.value);
-    document.getElementById('artRotateVal').textContent = rotation + '°';
-    const layer = selectedLayer();
-    if(layer?.type === 'image'){
-      layer.rotation = rotation;
-      render();
-    } else {
-      artSettings.rotate = rotation;
-      applyArtworkToCanvas();
-    }
+    const layer = editableImage();
+    if(!layer) return;
+    layer.rotation = Number(artRotate.value);
+    document.getElementById('artRotateVal').textContent = layer.rotation + '°';
+    render();
   });
   artOpacity.addEventListener('input', () => {
-    const opacity = parseInt(artOpacity.value) / 100;
-    document.getElementById('artOpacityVal').textContent = parseInt(artOpacity.value) + '%';
-    const layer = selectedLayer();
-    if(layer?.type === 'image'){
-      layer.opacity = opacity;
-      render();
-    } else {
-      artSettings.opacity = opacity;
-      applyArtworkToCanvas();
-    }
-  });
-
-  document.getElementById('btnArtFit').addEventListener('click', () => {
-    artSettings.sizing = 'fit';
-    document.getElementById('btnArtFit').classList.add('active');
-    document.getElementById('btnArtFill').classList.remove('active');
-    applyArtworkToCanvas();
-  });
-  document.getElementById('btnArtFill').addEventListener('click', () => {
-    artSettings.sizing = 'fill';
-    document.getElementById('btnArtFill').classList.add('active');
-    document.getElementById('btnArtFit').classList.remove('active');
-    applyArtworkToCanvas();
-  });
-
-  document.getElementById('btnRotateCCW').addEventListener('click', () => {
-    const layer = selectedLayer();
-    const currentRotation = layer?.type === 'image' ? (layer.rotation || 0) : artSettings.rotate;
-    let r = (currentRotation - 90) % 360;
-    if(r > 180) r -= 360;
-    if(r <= -180) r += 360;
-    if(layer?.type === 'image') layer.rotation = r;
-    else artSettings.rotate = r;
-    artRotate.value = r;
-    document.getElementById('artRotateVal').textContent = r + '°';
-    if(layer?.type === 'image') render();
-    else applyArtworkToCanvas();
-  });
-
-  document.getElementById('btnRotateCW').addEventListener('click', () => {
-    const layer = selectedLayer();
-    const currentRotation = layer?.type === 'image' ? (layer.rotation || 0) : artSettings.rotate;
-    let r = (currentRotation + 90) % 360;
-    if(r > 180) r -= 360;
-    if(r <= -180) r += 360;
-    if(layer?.type === 'image') layer.rotation = r;
-    else artSettings.rotate = r;
-    artRotate.value = r;
-    document.getElementById('artRotateVal').textContent = r + '°';
-    if(layer?.type === 'image') render();
-    else applyArtworkToCanvas();
-  });
-
-  function resetRotation(){
-    const sel = selectedLayer();
-    const imageSelected = sel?.type === 'image';
-    if(!imageSelected) artSettings.rotate = 0;
-    artRotate.value = 0;
-    document.getElementById('artRotateVal').textContent = '0°';
-    if(sel){
-      sel.rotation = 0;
-    }
-    if(!imageSelected){
-      const cover = currentState().layers.find(l => l.role === 'coverArt');
-      if(cover) cover.rotation = 0;
-      applyArtworkToCanvas();
-    }
+    const layer = editableImage();
+    if(!layer) return;
+    layer.opacity = Number(artOpacity.value) / 100;
+    document.getElementById('artOpacityVal').textContent = artOpacity.value + '%';
     render();
+  });
+  for(const [id, sizing] of [['btnArtFit', 'fit'], ['btnArtFill', 'fill']]){
+    document.getElementById(id).addEventListener('click', () => {
+      const layer = editableImage();
+      if(!layer) return;
+      pushHistory();
+      const piece = currentPiece();
+      const ratio = sizing === 'fit' ? Math.min(piece.w/layer.w, piece.h/layer.h)
+        : Math.max(piece.w/layer.w, piece.h/layer.h);
+      layer.w *= ratio;
+      layer.h *= ratio;
+      layer.sizing = sizing;
+      render();
+      syncImageControls();
+    });
   }
-
-  const btnResetRotate = document.getElementById('btnResetRotate');
-  if(btnResetRotate){
-    btnResetRotate.addEventListener('click', resetRotation);
+  for(const [id, delta] of [['btnRotateCCW', -90], ['btnRotateCW', 90]]){
+    document.getElementById(id).addEventListener('click', () => {
+      const layer = editableImage();
+      if(!layer) return;
+      pushHistory();
+      layer.rotation = ((layer.rotation || 0) + delta + 540) % 360 - 180;
+      render();
+      syncImageControls();
+    });
   }
+  function resetRotation(){
+    const layer = editableImage();
+    if(!layer) return;
+    pushHistory();
+    layer.rotation = 0;
+    render();
+    syncImageControls();
+  }
+  document.getElementById('btnResetRotate').addEventListener('click', resetRotation);
   artRotate.addEventListener('dblclick', resetRotation);
-
   document.getElementById('btnResetArt').addEventListener('click', () => {
-    const sel = selectedLayer();
-    const imageSelected = sel?.type === 'image';
-    if(!imageSelected) artSettings = { zoom: 1, rotate: 0, opacity: 1, sizing: 'fill', flipX: false, flipY: false };
-    artZoom.value = 1; artRotate.value = 0; artOpacity.value = 100;
-    document.getElementById('artZoomVal').textContent = '1.00x';
-    document.getElementById('artRotateVal').textContent = '0°';
-    document.getElementById('artOpacityVal').textContent = '100%';
-    document.getElementById('btnArtFill').classList.add('active');
-    document.getElementById('btnArtFit').classList.remove('active');
-
-    if(sel){
-      if(imageSelected && imageControlBase?.id === sel.id){
-        sel.w = imageControlBase.w;
-        sel.h = imageControlBase.h;
-      }
-      sel.rotation = 0;
-      if(sel.type === 'image'){ sel.opacity = 1; sel.flipX = false; sel.flipY = false; }
-    }
-    if(!imageSelected){
-      const cover = currentState().layers.find(l => l.role === 'coverArt');
-      if(cover){
-        cover.rotation = 0;
-        cover.opacity = 1;
-        cover.flipX = false;
-        cover.flipY = false;
-      }
-      applyArtworkToCanvas();
-    }
+    const layer = editableImage();
+    if(!layer) return;
+    pushHistory();
+    if(imageControlBase?.id === layer.id){ layer.w = imageControlBase.w; layer.h = imageControlBase.h; }
+    layer.rotation = 0;
+    layer.opacity = 1;
+    layer.flipX = false;
+    layer.flipY = false;
     render();
     syncImageControls();
   });
+  syncImageControls();
 }
 
 // ── Studio / Logos ────────────────────────────────────────────────────────────
