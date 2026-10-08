@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Inter:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800&family=Noto+Sans+Malayalam:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20261008-editor-4">
+<link rel="stylesheet" href="css/styles.css?v=20261008-type-6">
 </head>
 <body>
 
@@ -29,11 +29,22 @@
   <!-- Top/Left: Canvas Area -->
   <div class="canvas-section">
     <div class="canvas-toolbar">
+      <div class="canvas-toolbar-actions">
+        <button type="button" class="tool-btn" id="btnUndo" title="Undo (Ctrl+Z / ⌘Z)" disabled>↶ Undo</button>
+        <button type="button" class="tool-btn" id="btnRedo" title="Redo (Ctrl+Y / Ctrl+Shift+Z / ⌘Shift+Z)" disabled>↷ Redo</button>
+        <details class="deleted-items-menu" id="deletedItemsMenu">
+          <summary class="tool-btn">Deleted items</summary>
+          <div class="deleted-items-panel">
+            <strong>Recover deleted items</strong>
+            <div id="deletedItemsList"></div>
+            <button type="button" class="action-btn" id="btnRestoreAllDeleted">Restore all deleted items</button>
+            <button type="button" class="action-btn" id="btnRestoreGenerated">Restore missing labels &amp; tracks on this piece</button>
+          </div>
+        </details>
       <button class="tool-btn" id="btnLayout">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
         Layout
       </button>
-      <div class="canvas-toolbar-actions">
         <button class="tool-btn" id="btnColorControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0-10 10"></path></svg>
           Color
@@ -211,78 +222,72 @@
         <button type="button" class="action-btn primary add-text-project-btn" id="btnAddTextLayer">+ Add Text</button>
       </div>
 
-      <!-- Font Controls Card -->
-      <div class="font-controls-card" id="typographyCard">
-        <div class="font-controls-row">
-          <div class="fc-group">
-            <label class="fc-label">Custom Font</label>
-            <div class="font-select-wrap">
-              <select id="fontSelect">
-                <option value="sans">Inter</option>
-                <option value="mono">JetBrains Mono</option>
-                <option value="display">Archivo Expanded</option>
-                <option value="malayalam">Noto Sans Malayalam</option>
-              </select>
-            </div>
+      <!-- Typography -->
+      <section class="font-controls-card typography-studio" id="typographyCard" aria-labelledby="typographyTitle">
+        <div class="typography-heading"><h3 id="typographyTitle">Text style</h3><span id="fontEditingTarget" class="typography-target" aria-live="polite">Style for new text</span></div>
+        <div class="font-live-preview" id="fontLivePreview" aria-label="Font preview">Your next great mixtape</div>
+        <div class="typography-family">
+          <label class="fc-label" for="fontSelect">Font family</label>
+          <div class="font-search-row"><input type="search" id="fontSearch" placeholder="Find a font…" aria-label="Search font families"><button type="button" id="btnClearFontSearch" aria-label="Clear font search">Clear</button></div>
+          <div class="font-select-wrap"><select id="fontSelect" aria-label="Font family">
+            <optgroup label="Included fonts">
+              <option value="sans">Inter</option><option value="mono">JetBrains Mono</option>
+              <option value="display">Archivo Expanded</option><option value="malayalam">Noto Sans Malayalam</option>
+            </optgroup>
+            <optgroup label="On this computer" id="pcFontOptions"></optgroup>
+          </select></div>
+          <span id="fontSearchStatus" class="editor-help" aria-live="polite"></span>
+          <details class="typography-disclosure"><summary>Add fonts from your computer</summary>
             <button type="button" class="action-btn" id="btnLoadPCFonts">Load PC fonts</button>
-            <div class="local-font-entry">
-              <input type="text" id="localFontName" placeholder="Installed font name" aria-label="Installed font name">
-              <button type="button" class="action-btn" id="btnAddPCFont">Add</button>
-            </div>
+            <div class="local-font-entry"><input type="text" id="localFontName" placeholder="Installed font family name" aria-label="Installed font name"><button type="button" class="action-btn" id="btnAddPCFont">Add font</button></div>
             <span class="editor-help" id="localFontStatus" aria-live="polite"></span>
-          </div>
-          <div class="fc-group">
-            <label class="fc-label">Font Size</label>
-            <input type="range" id="fontSizeSlider" min="2" max="30" step="0.1" value="7">
-            <span class="fc-val" id="fontSizeVal">7mm</span>
-          </div>
-          <div class="fc-group">
-            <label class="fc-label">Font Weight</label>
-            <input type="range" id="fontWeightSlider" min="100" max="900" step="100" value="400">
-            <span class="fc-val" id="fontWeightVal">400</span>
-          </div>
-          <div class="fc-group">
-            <label class="fc-label">Letter Spacing</label>
-            <input type="range" id="letterSpacingSlider" min="-5" max="20" step="0.1" value="0">
-            <span class="fc-val" id="letterSpacingVal">0.0px</span>
+          </details>
+        </div>
+        <div class="typography-block"><span class="fc-label">Quick styles</span>
+          <div class="type-presets" role="group" aria-label="Text style presets">
+            <button type="button" data-type-preset="caption" aria-pressed="false"><span class="preset-example preset-caption">Aa</span>Caption</button>
+            <button type="button" data-type-preset="tracks" aria-pressed="false"><span class="preset-example preset-tracks">Aa</span>Track list</button>
+            <button type="button" data-type-preset="heading" aria-pressed="false"><span class="preset-example preset-heading">Aa</span>Heading</button>
+            <button type="button" data-type-preset="title" aria-pressed="false"><span class="preset-example preset-title">Aa</span>Title</button>
           </div>
         </div>
-
-        <div class="font-style-row">
-          <label class="checkbox-label"><input type="checkbox" id="chkSmallCaps"> Small Caps</label>
-          <label class="checkbox-label"><input type="checkbox" id="chkAllCaps"> All Caps</label>
-          <label class="checkbox-label"><input type="checkbox" id="chkItalic"> Italic</label>
-          <label class="checkbox-label"><input type="checkbox" id="chkShadow"> Shadow</label>
-          <label class="checkbox-label"><input type="checkbox" id="chkOutline"> Outline</label>
+        <div class="typography-main-controls">
+          <div class="fc-group"><span class="fc-label">Size</span><div class="type-size-control">
+            <button type="button" id="btnFontSmaller" aria-label="Make text smaller" title="Make text smaller">A−</button>
+            <span id="fontSizeDescription">Custom</span>
+            <button type="button" id="btnFontLarger" aria-label="Make text larger" title="Make text larger">A+</button>
+          </div></div>
+          <div class="fc-group"><label class="fc-label" for="fontWeightSlider">Weight</label><select id="fontWeightSlider">
+            <option value="100">Thin</option><option value="200">Extra light</option><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">Semibold</option><option value="700" selected>Bold</option><option value="800">Extra bold</option><option value="900">Black</option>
+          </select></div>
         </div>
-
-        <div class="font-color-row">
-          <span class="fc-label">Color</span>
-          <button class="font-color-swatch" id="fontColorSwatch" title="Click to pick color"></button>
-          <input type="color" id="fontColorPicker" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
-          <button class="fc-reset-btn" id="btnResetFontColor">Reset</button>
+        <div class="font-style-row typography-toggles" role="group" aria-label="Text formatting">
+          <label><input type="checkbox" id="chkItalic"><span><i>I</i> Italic</span></label>
+          <label><input type="checkbox" id="chkAllCaps"><span>AA All caps</span></label>
+          <label><input type="checkbox" id="chkSmallCaps"><span>Small caps</span></label>
+          <label><input type="checkbox" id="chkShadow"><span>Shadow</span></label>
+          <label><input type="checkbox" id="chkOutline"><span>Outline</span></label>
         </div>
-
-        <div class="font-align-row">
-          <span class="fc-label" style="min-width:38px;">Align</span>
-          <button type="button" class="btn-align active" id="btnAlignLeft" title="Align Left">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-          </button>
-          <button type="button" class="btn-align" id="btnAlignCenter" title="Align Center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="18" y1="14" x2="6" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
-          </button>
-          <button type="button" class="btn-align" id="btnAlignRight" title="Align Right">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="7" y2="18"/></svg>
-          </button>
+        <div class="typography-main-controls">
+          <div class="fc-group"><span class="fc-label">Letter spacing</span><div class="type-spacing-options" role="group" aria-label="Letter spacing presets">
+            <button type="button" data-type-spacing="-0.5" aria-pressed="false">Tight</button><button type="button" data-type-spacing="0" aria-pressed="true">Normal</button><button type="button" data-type-spacing="1" aria-pressed="false">Open</button>
+          </div></div>
+          <div class="fc-group"><label class="fc-label" for="fontLineHeight">Line spacing</label><select id="fontLineHeight"><option value="1">Compact</option><option value="1.25" selected>Comfortable</option><option value="1.5">Relaxed</option><option value="2">Spacious</option></select></div>
         </div>
-
-        <p class="font-language-note">Malayalam text is supported. Choose Noto Sans Malayalam, or it will be selected automatically when you type Malayalam.</p>
-        <button class="save-default-btn" id="btnSaveDefaultFont">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v6h10V2"/><path d="M7 13h10v9H7z"/></svg>
-          Save as Default Font
-        </button>
+        <div class="typography-finish-row">
+          <div class="font-align-row" role="group" aria-label="Text alignment">
+            <button type="button" class="btn-align" id="btnAlignLeft" aria-pressed="false">Left</button><button type="button" class="btn-align" id="btnAlignCenter" aria-pressed="true">Center</button><button type="button" class="btn-align" id="btnAlignRight" aria-pressed="false">Right</button>
+          </div>
+          <div class="font-color-row"><button class="font-color-swatch" id="fontColorSwatch" title="Choose text color" aria-label="Choose text color"></button><label for="fontColorPicker">Color</label><input type="color" id="fontColorPicker" class="visually-hidden"><button class="fc-reset-btn" id="btnResetFontColor">Reset color</button></div>
+        </div>
+        <details class="typography-disclosure"><summary>Exact measurements</summary><div class="typography-main-controls">
+          <div class="fc-group"><label class="fc-label" for="fontSizeSlider">Text size (mm)</label><input type="number" id="fontSizeSlider" min="0.5" max="30" step="0.1" value="5"><span class="fc-val" id="fontSizeVal">5.0mm</span></div>
+          <div class="fc-group"><label class="fc-label" for="letterSpacingSlider">Letter spacing (px)</label><input type="number" id="letterSpacingSlider" min="-5" max="20" step="0.1" value="0"><span class="fc-val" id="letterSpacingVal">0.0px</span></div>
+        </div></details>
+        <p class="editor-help">Styles apply to selected text or a selected track list. With no text selected, they style the next text you add.</p>
+        <button class="save-default-btn" id="btnSaveDefaultFont">Save as my default text style</button>
         <span id="defaultFontSaveStatus" class="inline-save-status" aria-live="polite"></span>
-      </div>
+      </section>
 
       <!-- Track List Settings -->
       <div class="tracklist-settings-card" id="trackSettingsCard">
@@ -691,16 +696,19 @@ Recorded at: Studio Name</textarea>
 </div>
 
 
-<script src="js/state.js?v=20261008-editor-4"></script>
-<script src="js/canvas.js?v=20261008-editor-4"></script>
-<script src="js/export.js?v=20261008-editor-4"></script>
-<script src="js/storage.js?v=20261008-editor-4"></script>
-<script src="js/fonts.js?v=20261008-editor-4"></script>
-<script src="js/ui.js?v=20261008-editor-4"></script>
-<script src="js/project-file.js?v=20261008-editor-4"></script>
-<script src="js/tutorial.js?v=20261008-editor-4"></script>
+<script src="js/state.js?v=20261008-type-6"></script>
+<script src="js/canvas.js?v=20261008-type-6"></script>
+<script src="js/export.js?v=20261008-type-6"></script>
+<script src="js/storage.js?v=20261008-type-6"></script>
+<script src="js/fonts.js?v=20261008-type-6"></script>
+<script src="js/ui.js?v=20261008-type-6"></script>
+<script src="js/typography.js?v=20261008-type-6"></script>
+<script src="js/project-file.js?v=20261008-type-6"></script>
+<script src="js/history.js?v=20261008-type-6"></script>
+<script src="js/recovery.js?v=20261008-type-6"></script>
+<script src="js/tutorial.js?v=20261008-type-6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/3d.js?v=20261008-editor-4"></script>
+<script src="js/3d.js?v=20261008-type-6"></script>
 
 </body>
 </html>

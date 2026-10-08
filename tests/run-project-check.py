@@ -13,13 +13,14 @@ candidates = [shutil.which('chromium'), shutil.which('google-chrome'), shutil.wh
               r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe']
 candidates.extend(str(path) for path in (Path.home()/'AppData/Local/ms-playwright').glob('chromium-*/chrome-win/chrome.exe'))
 parser.add_argument('--browser', default=os.environ.get('CHROME_BINARY') or next((path for path in candidates if path and Path(path).is_file()), None))
+parser.add_argument('--screenshot')
 args = parser.parse_args()
 if not args.browser: parser.error('Specify a Chromium browser with --browser PATH')
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs): super().__init__(*args, directory=str(root), **kwargs)
     def do_GET(self):
         if self.path == '/_project_check.html':
-            html = (root/'index.html').read_text(encoding='utf-8').replace('</body>', '<script src="tests/editor-check.js"></script><script src="tests/project-check.js"></script></body>')
+            html = (root/'index.html').read_text(encoding='utf-8').replace('</body>', '<script src="tests/editor-check.js"></script><script src="tests/history-check.js"></script><script src="tests/typography-check.js"></script><script src="tests/project-check.js"></script></body>')
             self.send_response(200)
             self.send_header('Content-Type','text/html; charset=utf-8')
             self.end_headers()
@@ -78,6 +79,9 @@ try:
         result=response.get('result',{}).get('result',{}).get('value','')
         if result.startswith(('PASS:', 'FAIL:')): break
         time.sleep(.1)
+    if args.screenshot:
+        shot = cdp.call('Page.captureScreenshot', {'format':'png'})
+        Path(args.screenshot).write_bytes(base64.b64decode(shot['result']['data']))
     print(result or 'FAIL: no browser test result')
     if not result.startswith('PASS:'): raise SystemExit(1)
 finally:

@@ -10,6 +10,8 @@ let defaultFontSettings = {
   size: 5,
   fontWeight: 700,
   letterSpacing: 0,
+  lineHeight: 1.25,
+  align: 'center',
   smallCaps: false,
   italic: false,
   allCaps: false,
@@ -206,11 +208,12 @@ function addNewTextLayer(){
     size: defaultFontSettings.size, color: defaultFontSettings.color,
     fontWeight: defaultFontSettings.fontWeight,
     letterSpacing: defaultFontSettings.letterSpacing,
+    lineHeight: defaultFontSettings.lineHeight || 1.25,
     smallCaps: defaultFontSettings.smallCaps,
     italic: defaultFontSettings.italic, allCaps: defaultFontSettings.allCaps,
     shadow: defaultFontSettings.shadow, outline: defaultFontSettings.outline,
     bold: defaultFontSettings.fontWeight >= 700,
-    align: 'center', textCase: 'none', rotation: 0, opacity: 1,
+    align: defaultFontSettings.align || 'center', textCase: defaultFontSettings.allCaps ? 'upper' : 'none', rotation: 0, opacity: 1,
     x: snapToGrid ? Math.round((p.w/2) / gridSpacingMm) * gridSpacingMm : p.w/2,
     y: snapToGrid ? Math.round((p.h/2) / gridSpacingMm) * gridSpacingMm : p.h/2
   };
@@ -317,7 +320,7 @@ let tracksB = [
   { name: 'Track 10', time: '0:00' }
 ];
 
-function renderTracksUI() {
+function renderTracksUI(syncCanvas = true) {
   const renderList = (list, containerId, totalId, side) => {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -350,6 +353,10 @@ function renderTracksUI() {
       removeButton.title = `Remove side ${side} track ${i + 1}`;
       removeButton.setAttribute('aria-label', removeButton.title);
       removeButton.addEventListener('click', () => {
+        pushHistory();
+        state['jcard-back'].deletedTracks ||= [];
+        state['jcard-back'].deletedTracks.push({ side, index: i, track: { ...list[i] },
+          layers: state['jcard-back'].layers.filter(layer => layer.trackId === list[i].id).map(layer => ({ ...layer })) });
         list.splice(i, 1);
         renderTracksUI();
       });
@@ -362,7 +369,7 @@ function renderTracksUI() {
   };
   renderList(tracksA, 'tracksA', 'totalA', 'A');
   renderList(tracksB, 'tracksB', 'totalB', 'B');
-  syncTracksToCanvas();
+  if(syncCanvas) syncTracksToCanvas();
 }
 
 window.updateTrack = (side, idx, field, val) => {
@@ -395,6 +402,7 @@ function addTrack(side) {
     timeInput.focus();
     return;
   }
+  pushHistory();
   list.push({ name, time });
   nameInput.value = '';
   timeInput.value = '';
@@ -939,7 +947,9 @@ function getFontPanelValues(){
     size: parseFloat(document.getElementById('fontSizeSlider').value),
     fontWeight: parseInt(document.getElementById('fontWeightSlider').value),
     letterSpacing: parseFloat(document.getElementById('letterSpacingSlider').value),
-    color: layer?.color || fontColorPicker.value || defaultFontSettings.color,
+    color: fontColorPicker.value || defaultFontSettings.color,
+    lineHeight: Number(document.getElementById('fontLineHeight').value),
+    align: layer && ['text', 'wraptext'].includes(layer.type) ? layer.align || 'center' : defaultFontSettings.align || 'center',
     smallCaps: document.getElementById('chkSmallCaps').checked,
     italic: document.getElementById('chkItalic').checked,
     allCaps: document.getElementById('chkAllCaps').checked,
@@ -950,11 +960,11 @@ function getFontPanelValues(){
 
 function updateFontPanelDisplay(){
   const size = parseFloat(document.getElementById('fontSizeSlider').value);
-  const weight = parseInt(document.getElementById('fontWeightSlider').value);
   const ls = parseFloat(document.getElementById('letterSpacingSlider').value);
   document.getElementById('fontSizeVal').textContent = size.toFixed(1) + 'mm';
-  document.getElementById('fontWeightVal').textContent = weight;
+
   document.getElementById('letterSpacingVal').textContent = ls.toFixed(1) + 'px';
+  window.refreshTypographyPreview?.();
 }
 
 function updateAlignButtons(align){
@@ -964,6 +974,7 @@ function updateAlignButtons(align){
   if(left) left.classList.toggle('active', align === 'left');
   if(center) center.classList.toggle('active', align === 'center');
   if(right) right.classList.toggle('active', align === 'right');
+  for(const [button, value] of [[left, 'left'], [center, 'center'], [right, 'right']]) button?.setAttribute('aria-pressed', String(align === value));
 }
 
 function initFontAlignControls(){
@@ -973,11 +984,11 @@ function initFontAlignControls(){
     if(!btn) return;
     btn.addEventListener('click', () => {
       const layer = selectedLayer();
-      if(layer && (layer.type === 'text' || layer.type === 'wraptext')){
-        layer.align = al;
-        updateAlignButtons(al);
-        render();
-      }
+      const targets = selectedTrackLayers().length ? selectedTrackLayers() : [layer].filter(item => item && ['text', 'wraptext'].includes(item.type));
+      if(targets.length) targets.forEach(item => { item.align = al; });
+      else defaultFontSettings.align = al;
+      updateAlignButtons(al);
+      render();
     });
   });
 }
@@ -996,34 +1007,32 @@ function selectTrackSide(side){
 }
 for(const side of ['A', 'B']) document.getElementById(`btnSelectTracks${side}`).addEventListener('click', () => selectTrackSide(side));
 
-function applyFontToSelected(){
+function applyFontToSelected(keys){
   const layer = selectedLayer();
-  if(!layer || (layer.type !== 'text' && layer.type !== 'wraptext')) return;
   const vals = getFontPanelValues();
-  const targets = selectedTrackLayers().length ? selectedTrackLayers() : [layer];
-  targets.forEach(layer => {
-    layer.font = vals.font;
-    layer.size = vals.size;
-    layer.fontWeight = vals.fontWeight;
-    layer.bold = vals.fontWeight >= 700;
-    layer.letterSpacing = vals.letterSpacing;
-    layer.smallCaps = vals.smallCaps;
-    layer.italic = vals.italic;
-    layer.allCaps = vals.allCaps;
-    layer.textCase = vals.allCaps ? 'upper' : 'none';
-    layer.shadow = vals.shadow;
-    layer.outline = vals.outline;
-  });
+  const properties = keys || Object.keys(vals);
+  // An empty or invalid precise input must never write NaN into a project.
+  if(properties.some(key => ['size', 'fontWeight', 'letterSpacing', 'lineHeight'].includes(key) && !Number.isFinite(vals[key]))) return;
+  const targets = selectedTrackLayers().length ? selectedTrackLayers() : [layer].filter(item => item && ['text', 'wraptext'].includes(item.type));
+  for(const target of targets.length ? targets : [defaultFontSettings]){
+    properties.forEach(key => { target[key] = vals[key]; });
+    if(properties.includes('fontWeight')) target.bold = vals.fontWeight >= 700;
+    if(properties.includes('allCaps')) target.textCase = vals.allCaps ? 'upper' : 'none';
+  }
+  updateFontPanelDisplay();
   render();
 }
 
 // Sync font panel FROM a layer (when layer clicked)
 window.syncFontPanelToLayer = function(layer){
-  if(!layer || (layer.type !== 'text' && layer.type !== 'wraptext')) return;
+  if(!layer || (layer.type !== 'text' && layer.type !== 'wraptext')){ window.clearFontPanel(); return; }
   ensureFontOption(layer.font || 'sans');
   document.getElementById('fontSelect').value = layer.font || 'sans';
   document.getElementById('fontSizeSlider').value = layer.size || 5;
+  window.ensureTypographyOption?.('fontWeightSlider', layer.fontWeight || (layer.bold ? 700 : 400));
   document.getElementById('fontWeightSlider').value = layer.fontWeight || (layer.bold ? 700 : 400);
+  window.ensureTypographyOption?.('fontLineHeight', layer.lineHeight || 1.25);
+  document.getElementById('fontLineHeight').value = layer.lineHeight || 1.25;
   document.getElementById('letterSpacingSlider').value = layer.letterSpacing || 0;
   document.getElementById('chkItalic').checked = !!layer.italic;
   document.getElementById('chkSmallCaps').checked = !!layer.smallCaps;
@@ -1042,51 +1051,50 @@ window.clearFontPanel = function(){
   ensureFontOption(defaultFontSettings.font);
   document.getElementById('fontSelect').value = defaultFontSettings.font;
   document.getElementById('fontSizeSlider').value = defaultFontSettings.size;
+  window.ensureTypographyOption?.('fontWeightSlider', defaultFontSettings.fontWeight);
   document.getElementById('fontWeightSlider').value = defaultFontSettings.fontWeight;
   document.getElementById('letterSpacingSlider').value = defaultFontSettings.letterSpacing;
-  document.getElementById('chkItalic').checked = false;
-  document.getElementById('chkSmallCaps').checked = false;
-  document.getElementById('chkAllCaps').checked = false;
-  document.getElementById('chkShadow').checked = false;
-  document.getElementById('chkOutline').checked = false;
+  for(const [id, key] of Object.entries({chkItalic:'italic', chkSmallCaps:'smallCaps', chkAllCaps:'allCaps', chkShadow:'shadow', chkOutline:'outline'})) document.getElementById(id).checked = !!defaultFontSettings[key];
+  window.ensureTypographyOption?.('fontLineHeight', defaultFontSettings.lineHeight || 1.25);
+  document.getElementById('fontLineHeight').value = defaultFontSettings.lineHeight || 1.25;
+  fontColorSwatch.style.backgroundColor = defaultFontSettings.color;
+  fontColorPicker.value = defaultFontSettings.color;
   updateFontPanelDisplay();
-  updateAlignButtons('left');
+  updateAlignButtons(defaultFontSettings.align || 'center');
 };
 
-// Wire font controls
-['fontSizeSlider','fontWeightSlider','letterSpacingSlider'].forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener('input', () => { updateFontPanelDisplay(); applyFontToSelected(); });
-});
-
-document.getElementById('fontSelect').addEventListener('change', () => applyFontToSelected());
-
-['chkItalic','chkAllCaps','chkShadow','chkOutline','chkSmallCaps'].forEach(id => {
-  const el = document.getElementById(id);
-  if(el) el.addEventListener('change', () => applyFontToSelected());
-});
+// Precise fields commit on change so partially typed numbers never distort text.
+for(const [id, key] of [['fontSizeSlider', 'size'], ['letterSpacingSlider', 'letterSpacing']]){
+  const input = document.getElementById(id);
+  input.addEventListener('change', () => {
+    if(!input.value || !Number.isFinite(Number(input.value))){
+      if(selectedLayer()?.type === 'text' || selectedLayer()?.type === 'wraptext') syncFontPanelToLayer(selectedLayer());
+      else clearFontPanel();
+      return;
+    }
+    input.value = Math.max(Number(input.min), Math.min(Number(input.max), Number(input.value)));
+    applyFontToSelected([key]);
+  });
+}
+for(const [id, key] of [['fontSelect','font'], ['fontWeightSlider','fontWeight'], ['fontLineHeight','lineHeight']]){
+  document.getElementById(id).addEventListener('change', () => applyFontToSelected([key]));
+}
+for(const [id, key] of Object.entries({chkItalic:'italic', chkAllCaps:'allCaps', chkShadow:'shadow', chkOutline:'outline', chkSmallCaps:'smallCaps'})){
+  document.getElementById(id).addEventListener('change', () => applyFontToSelected([key]));
+}
 
 // Font color swatch
 const fontColorSwatch = document.getElementById('fontColorSwatch');
 const fontColorPicker = document.getElementById('fontColorPicker');
 fontColorSwatch.addEventListener('click', () => fontColorPicker.click());
-fontColorPicker.addEventListener('input', (e) => {
-  fontColorSwatch.style.backgroundColor = e.target.value;
-  const layer = selectedLayer();
-  if(layer && (layer.type === 'text' || layer.type === 'wraptext')){
-    layer.color = e.target.value;
-    render();
-  }
+fontColorPicker.addEventListener('input', () => {
+  fontColorSwatch.style.backgroundColor = fontColorPicker.value;
+  applyFontToSelected(['color']);
 });
-
 document.getElementById('btnResetFontColor').addEventListener('click', () => {
-  const layer = selectedLayer();
-  if(layer && (layer.type === 'text' || layer.type === 'wraptext')){
-    layer.color = '#1C1A16';
-    fontColorSwatch.style.backgroundColor = '#1C1A16';
-    fontColorPicker.value = '#1c1a16';
-    render();
-  }
+  fontColorPicker.value = '#1c1a16';
+  fontColorSwatch.style.backgroundColor = fontColorPicker.value;
+  applyFontToSelected(['color']);
 });
 
 document.getElementById('btnSaveDefaultFont').addEventListener('click', async () => {
@@ -1982,6 +1990,7 @@ async function restoreSavedProject(saved){
 async function init() {
   initUiColorPreference();
   seedDefaults();
+  window.defaultLayerTemplates = Object.fromEntries(PIECES.map(piece => [piece.id, structuredClone(state[piece.id].layers)]));
   document.body.inert = true;
   let restored;
   try { restored = await restoreSavedProject(); }
@@ -1992,7 +2001,7 @@ async function init() {
   renderTracksUI();
   updateBgSwatchIndicator(currentState().bgColor || '#F4F0E6');
   updateColorUI(currentTextColor);
-  updateFontPanelDisplay();
+  clearFontPanel();
   fontColorSwatch.style.backgroundColor = defaultFontSettings.color;
   fontColorPicker.value = defaultFontSettings.color;
   initFontAlignControls();
@@ -2005,6 +2014,8 @@ async function init() {
   const heading = document.getElementById('projectHeaderTitle');
   if(heading) heading.textContent = document.getElementById('albumNameInput').value.trim() || 'Untitled J-Card';
   if(restored) document.getElementById('projectSaveStatus').textContent = 'Restored from this device';
+  window.projectHistory?.reset();
+  window.refreshDeletedItems?.();
   if(activeColorMode === 'bg') setColorMode('bg');
   else setColorMode('text');
 }

@@ -215,6 +215,9 @@ window.resetImageCrop = resetImageCrop;
 window.isImageCropActive = layerId => imageCropLayerId === layerId;
 
 function render(){
+  window.refreshTypographyPreview?.();
+  window.projectHistory?.scheduleUpdate();
+  window.refreshDeletedItems?.();
   const p = currentPiece();
   const s = currentState();
   const W = p.w*MM_PX, H = p.h*MM_PX;
@@ -923,7 +926,6 @@ stage.addEventListener('pointerdown', (e)=>{
 
   const group = trackGroupBounds();
   if(group && x >= group.x && x <= group.x + group.w && y >= group.y && y <= group.y + group.h){
-    pushHistory();
     dragState = { mode: 'trackGroup', startX: x, startY: y,
       members: selectedTrackLayers().map(layer => ({ layer, x: layer.x, y: layer.y })) };
     return;
@@ -945,8 +947,7 @@ stage.addEventListener('pointerdown', (e)=>{
     if(layer){
       const handle = hitHandle(x, y, layer);
       if(handle === 'rotate'){
-        pushHistory();
-        dragState = {
+            dragState = {
           mode: 'rotate',
           handle: 'rotate',
           layer,
@@ -957,8 +958,7 @@ stage.addEventListener('pointerdown', (e)=>{
         return;
       }
       if(handle){
-        pushHistory();
-        dragState = {
+            dragState = {
           mode: 'resize',
           handle,
           startX: x, startY: y,
@@ -977,7 +977,6 @@ stage.addEventListener('pointerdown', (e)=>{
   const hit = hitTest(x,y);
   if(hit){
     selectedLayerId = hit.id;
-    pushHistory();
     dragState = { mode:'move', startX:x, startY:y, origX:hit.x, origY:hit.y };
     centerAlignmentGuides = { vertical: [], horizontal: [] };
     // Sync font panel to this layer
@@ -1020,6 +1019,11 @@ stage.addEventListener('pointermove', (e)=>{
   const layer = selectedLayer();
   if(!layer) return;
 
+  if(dragState && !dragState.historySaved){
+    if(dragState.startX !== undefined && Math.hypot(x-dragState.startX, y-dragState.startY) < 0.05) return;
+    pushHistory();
+    dragState.historySaved = true;
+  }
   if(dragState?.mode === 'trackGroup'){
     if(!document.getElementById('freePlacementToggle').checked) return;
     let dx = x - dragState.startX, dy = y - dragState.startY;
@@ -1292,14 +1296,18 @@ function deleteSelectedLayer(){
   if(!selectedLayerId) return;
   pushHistory();
   const pieceState = currentState();
-  const deletedLayer = pieceState.layers.find(l => l.id === selectedLayerId);
-  if(deletedLayer?.dynamicKey){
-    pieceState.deletedDynamicKeys ||= [];
-    if(!pieceState.deletedDynamicKeys.includes(deletedLayer.dynamicKey)){
-      pieceState.deletedDynamicKeys.push(deletedLayer.dynamicKey);
-    }
-  }
-  pieceState.layers = pieceState.layers.filter(l => l.id !== selectedLayerId);
+  const removed = selectedTrackLayers().length ? selectedTrackLayers() : [selectedLayer()].filter(Boolean);
+  pieceState.deletedLayers ||= [];
+  pieceState.deletedDynamicKeys ||= [];
+  removed.forEach(layer => {
+    const { _img, ...savedLayer } = layer;
+    pieceState.deletedLayers.push({ layer: structuredClone(savedLayer), index: pieceState.layers.indexOf(layer) });
+    const key = layer.dynamicKey || layer.role;
+    if(key && !pieceState.deletedDynamicKeys.includes(key)) pieceState.deletedDynamicKeys.push(key);
+  });
+  const ids = new Set(removed.map(layer => layer.id));
+  pieceState.layers = pieceState.layers.filter(layer => !ids.has(layer.id));
+  selectedTrackGroup = null;
   selectedLayerId = null;
   closeInlineEdit();
   if(window.clearFontPanel) window.clearFontPanel();

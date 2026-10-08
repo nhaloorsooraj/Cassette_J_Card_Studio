@@ -104,13 +104,6 @@ function selectedLayer(){
   return s.layers.find(l=>l.id===selectedLayerId) || null;
 }
 
-function pushHistory(){
-  historyStack.push(JSON.stringify({pieceId: currentPieceId, data: state[currentPieceId]}));
-  if(historyStack.length > MAX_HISTORY) historyStack.shift();
-}
-function undo(){
-  if(historyStack.length === 0) return;
-  const snap = JSON.parse(historyStack.pop());
-  state[snap.pieceId] = snap.data;
-  if(snap.pieceId === currentPieceId){ selectedLayerId = null; if(window.render) window.render(); }
-}
+function pushHistory(){ window.projectHistory?.record(); }
+function undo(){ return window.projectHistory?.undo(); }
+function redo(){ return window.projectHistory?.redo(); }

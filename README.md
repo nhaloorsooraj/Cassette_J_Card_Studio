@@ -101,3 +101,13 @@ Track edits keep the existing font, size, and placement. New songs inherit the p
 Use **Load PC fonts** to add installed font families to the font list after granting browser permission. Where local font enumeration is unavailable, enter an installed family’s exact name and select **Add**. Local font choices are saved with the project; the font must also be installed on another computer to display identically.
 
 Image zoom, rotation, opacity, flips, Fit/Fill, and Reset apply only to the selected image. Select an image first to enable these controls.
+
+### Undo, redo, and recovering deleted items
+
+Use **Undo** / **Redo** in the canvas toolbar, **Ctrl+Z** to undo, and **Ctrl+Y** or **Ctrl+Shift+Z** to redo. On macOS use **⌘Z** / **⌘Shift+Z**. Text fields keep their native text-editing shortcuts. Design history covers the last 40 edits across pieces and resets when opening a different project.
+
+Open **Deleted items** to restore an individual layer or song, or restore all deleted items with their formatting and position. The recovery list is saved inside the project. For older projects, **Restore missing labels & tracks on this piece** rebuilds missing generated text without resetting the rest of the design. Restoring items can also be undone.
+
+### Text style panel
+
+Choose a font using search and the family list, then use **Caption**, **Track list**, **Heading**, or **Title** to get started. **A− / A+** adjust size, named weight and spacing choices keep everyday styling simple, and the live preview reflects your selection. **Exact measurements** reveals optional numeric size and tracking controls. Formatting changes apply to selected text or the whole selected track list; with no text selected, they set the style for your next text layer. Use **Save as my default text style** to retain that preference.

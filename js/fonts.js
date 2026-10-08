@@ -7,7 +7,7 @@ function ensureFontOption(id){
   option.value = id;
   option.textContent = font.label;
   option.style.fontFamily = font.css;
-  select.appendChild(option);
+  (document.getElementById('pcFontOptions') || select).appendChild(option);
 }
 
 const localFontStatus = document.getElementById('localFontStatus');
@@ -40,7 +40,7 @@ async function addLocalFont(){
     const id = `local:${family}`;
     ensureFontOption(id);
     document.getElementById('fontSelect').value = id;
-    applyFontToSelected();
+    applyFontToSelected(['font']);
     localFontStatus.textContent = `${family} is available in the font list.`;
     render();
   }catch(error){

@@ -1967,3 +1967,49 @@ body.dark-mode .inline-edit-wrap {
 .local-font-entry input { min-width: 0; width: 130px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
 #btnLoadPCFonts { margin-top: 6px; padding: 5px 8px; font-size: 12px; }
 .ca-controls button:disabled, .ca-controls input:disabled { opacity: .45; cursor: not-allowed; }
+
+.deleted-items-menu { position: relative; }
+.deleted-items-menu summary { list-style: none; }
+.deleted-items-menu summary::-webkit-details-marker { display: none; }
+.deleted-items-panel { position: absolute; top: calc(100% + 8px); left: 0; z-index: 100; width: min(360px, 85vw); max-height: 60vh; overflow: auto; padding: 14px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); }
+.deleted-items-panel > button { margin-top: 8px; width: 100%; }
+.deleted-item-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 12px; }
+.deleted-item-row span { overflow-wrap: anywhere; min-width: 0; }
+#btnUndo:disabled, #btnRedo:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Typography: visual presets first, precise measurements on demand. */
+.typography-studio { gap: 16px; }
+.typography-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.typography-heading h3 { margin: 0; font-size: 16px; }
+.typography-target { padding: 4px 8px; border-radius: 12px; background: var(--bg-color); font-size: 11px; color: var(--text-muted); }
+.font-live-preview { min-height: 92px; max-height: 150px; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; display: block; align-content: center; padding: 18px; border: 1px solid var(--border); border-radius: 8px; }
+.typography-family, .typography-block { display: grid; gap: 8px; }
+.font-search-row { display: flex; gap: 6px; }
+.font-search-row input { min-width: 0; flex: 1; }
+.typography-studio input[type=search], .typography-studio input[type=number], .typography-studio select { width: 100%; min-width: 0; border: 1px solid var(--border); background: var(--surface); color: var(--text-main); border-radius: 6px; padding: 8px; font-size: 13px; box-sizing: border-box; }
+.typography-studio button { color: var(--text-main); }
+.font-search-row button, .type-size-control button, .type-spacing-options button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; cursor: pointer; }
+.typography-main-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 14px; }
+.type-presets { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 6px; }
+.type-presets button { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; min-height: 80px; padding: 10px 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 11px; cursor: pointer; }
+.preset-example { line-height: 1; }
+.preset-caption { font-size: 15px; }.preset-tracks { font-size: 20px; }.preset-heading { font-size: 25px; font-weight: 700; }.preset-title { font-size: 30px; font-weight: 800; }
+.typography-studio [aria-pressed=true] { background: var(--bg-color); border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); color: var(--text-main); }
+.type-size-control { display: flex; align-items: center; gap: 6px; }
+.type-size-control span { flex: 1; font-size: 12px; text-align: center; }
+.type-size-control button { font-size: 16px; font-weight: 600; }
+.type-spacing-options { display: flex; gap: 4px; flex-wrap: wrap; }.type-spacing-options button { padding: 8px 7px; font-size: 12px; }
+.typography-toggles { gap: 6px; }
+.typography-toggles label { position: relative; cursor: pointer; }
+.typography-toggles input, .visually-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.typography-toggles span { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+.typography-toggles input:checked + span { background: var(--bg-color); border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.typography-studio button:focus-visible, .typography-studio input:focus-visible, .typography-studio select:focus-visible, .typography-toggles input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.typography-finish-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.typography-disclosure { border-top: 1px solid var(--border); padding-top: 10px; }
+.typography-disclosure summary { font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 3px 0; }
+.typography-disclosure > .typography-main-controls { margin-top: 10px; }
+.typography-studio .local-font-entry input { flex: 1; width: auto; }
+.typography-studio .editor-help { margin: 0; line-height: 1.5; }
+.typography-studio button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 420px) { .typography-main-controls { grid-template-columns: 1fr; } }

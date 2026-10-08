@@ -11,7 +11,7 @@ const projectFiles = (() => {
     const portable = JSON.parse(JSON.stringify(snapshot));
     const sources = new Map();
     for(const piece of Object.values(portable.state)){
-      for(const layer of piece.layers){
+      for(const layer of [...piece.layers, ...(piece.deletedLayers || []).map(entry => entry.layer)]){
         if(layer.type !== 'image' || !layer.src || layer.src.startsWith('data:')) continue;
         if(!sources.has(layer.src)) sources.set(layer.src, (async () => {
           const response = await fetch(layer.src);
@@ -160,11 +160,11 @@ const projectFiles = (() => {
     }finally{ setBusy(false); }
   }
 
-  async function apply(snapshot){
+  async function apply(snapshot, { resetHistory = true } = {}){
     snapshot = validate(JSON.parse(JSON.stringify(snapshot))); // Keep the caller's snapshot separate from live image caches.
     selectedLayerId = null;
     dragState = null;
-    historyStack = [];
+    if(resetHistory) window.projectHistory?.reset();
     imageCropLayerId = null;
     cropDraft = null;
     restoredArtworkLibrary = [];
@@ -173,7 +173,7 @@ const projectFiles = (() => {
     await restoreSavedProject(snapshot);
     await window.restoreArtworkLibrary();
     window.restoreLogoLibrary();
-    renderTracksUI();
+    renderTracksUI(resetHistory);
     for(const [id, key] of Object.entries({
       chkShowArtist: 'showArtist', chkShowTrackNum: 'showTrackNum', chkShowDuration: 'showDuration',
       chkShowBullet: 'showBullet', chkHideTracklist: 'hideTracklist', chkShowProductionInfo: 'showProductionInfo'
@@ -182,7 +182,7 @@ const projectFiles = (() => {
     for(const id of ['tracksA', 'tracksB']) document.getElementById(id).style.display = tracklistSettings.hideTracklist ? 'none' : '';
     switchPiece(currentPieceId);
     window.syncImageControls();
-    updateFontPanelDisplay();
+    clearFontPanel();
     fontColorSwatch.style.backgroundColor = defaultFontSettings.color;
     fontColorPicker.value = defaultFontSettings.color;
     setColorMode(activeColorMode);
@@ -196,6 +196,7 @@ const projectFiles = (() => {
         image.src = layer.src;
       })));
     render();
+    if(resetHistory) window.projectHistory?.reset();
   }
 
   async function openFile(file, handle = null){
